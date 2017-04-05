@@ -1,7 +1,9 @@
+import time
+
 ## Basic class describing a KiCad schematic
 #
-# Call getSch() to get a string containing the entire schematic.
-class KiSch:
+# Call get_sch() to get a string containing the entire schematic.
+class KiSch(object):
     def __init__(self):
         self._kicad_version = "4.0.6"
         self._first_line = "EESchema Schematic File Version 2\n"
@@ -35,19 +37,20 @@ LIBS:atmel
 LIBS:contrib
 LIBS:valves
 """
-        self.setLayers()
-        self.setDescr()
+        self.set_layers()
+        self.set_descr()
         self._content = ""
+        self.compString = ""
 
-    def setLibs(self, libs):
+    def set_libs(self, libs):
         self._libs = libs
 
-    def setLayers(self, l0=25, l1=0):
+    def set_layers(self, l0=25, l1=0):
         self._layers = ("EELAYER %d %d\n" % (l0, l1)
                       + "EELAYER END\n"
                        )
 
-    def setDescr(self, sheetid=1, sheettot=1, title="", date="", rev="0", comp="KiSch"):
+    def set_descr(self, sheetid=1, sheettot=1, title="", date="", rev="0", comp="KiSch"):
         self._descr = ("$Descr USLedger 17000 11000\n"
                      + "encoding utf-8\n"
                      + "Sheet %d %d\n" % (sheetid, sheettot)
@@ -62,7 +65,134 @@ LIBS:valves
                      + "$EndDescr\n"
                       )
 
-    def getSch(self):
-        return (self._first_line + self._libs + self._layers + self._descr
-                + self._content
-                + "$EndSCHEMATC\n")
+    def set_content(self, content):
+        self._content = content
+
+    ## @return A string that can be written to a .sch file
+    def get_sch(self):
+        self.compString = (self._first_line + self._libs + self._layers + self._descr
+                           + self._content
+                           + "$EndSCHEMATC\n")
+        return self.compString
+
+    def __str__(self):
+        if len(self.compString) == 0:
+            self.get_sch()
+        return(self.compString)
+
+## Text lable for marking nets
+class KiSchLabel(object):
+    ## @param [in] rot 0 - right, 1 - up, 2 - left, 3 - down
+    def __init__(self, label="GND", loc=(0,0), rot=0):
+        self.compString = ""
+        self.label = label
+        self.loc = loc
+        self.rot = rot
+
+    def get_comp(self):
+        self.compString = (
+            "Text Label {:d} {:d} {:d}    60   ~ 0\n".format(self.loc[0], self.loc[1], self.rot)
+          + "{:s}\n".format(self.label)
+            )
+        return self.compString
+
+    def __str__(self):
+        if len(self.compString) == 0:
+            self.get_comp()
+        return(self.compString)
+    
+## Generic class describing a schematic component
+#
+class KiSchComp(object):
+    ## Shared acroos all class objects to avoid duplicate time stamp.
+    timeStamp = 0
+    def __init__(self, npins=1):
+        self.nPins = npins
+        ## location to place the component
+        self.loc = (0, 0)
+        ## rotation, 'H' or 'V'
+        self.rot = 'H'
+        self.chipName = "R"
+        self.refName = "R1"
+        ## x,y offset and size, in mils
+        self.refOffSize = (80, 0, 50)
+        self.value = "DNL"
+        self.valOffSize = (-100, 0, 50)
+        self.footPrint = ""
+        self.fpOffSize = (-70, 0, 50)
+        self.compString = ""
+        type(self).timeStamp = int(time.time())
+
+    ## set x,y location
+    def set_location(self, x, y):
+        self.locX = x
+        self.locY = y
+
+    ## time stamp, hex format of seconds since 1970-01-01 00:00:00 UTC
+    def get_timestamp(self):
+        ts = "{:X}".format(type(self).timeStamp)
+        type(self).timeStamp += 1
+        return(ts)
+
+## Schematic resistor
+#
+class KiSchCompR(KiSchComp):
+    def __init__(self, ref="R1", loc=(0, 0), rot='H', val="DNL", fp="Resistors_SMD:R_0603_HandSoldering"):
+        super(KiSchCompR, self).__init__(2)
+        self.loc = loc
+        self.rot = rot
+        self.chipName = "R"
+        self.refName = ref
+        self.value = val
+        self.footPrint = fp
+
+    def get_comp(self):
+        self.compString = """$Comp
+L {:s} {:s}
+U 1 1 {:s}
+P {:d} {:d}
+F 0 "{:s}" V {:d} {:d} {:d}  0000 C CNN
+F 1 "{:s}" V {:d} {:d} {:d}  0000 C CNN
+F 2 "{:s}" V {:d} {:d} {:d}  0001 C CNN
+F 3 "" H {:d} {:d} {:d}  0001 C CNN
+        1    {:d} {:d}
+        {:s}
+$EndComp
+""".format(self.chipName, self.refName,
+           self.get_timestamp(),
+           self.loc[0], self.loc[1],
+           self.refName, self.loc[0]+self.refOffSize[0], self.loc[1]+self.refOffSize[1], self.refOffSize[2],
+           self.value, self.loc[0]+self.valOffSize[0], self.loc[1]+self.valOffSize[1], self.valOffSize[2],
+           self.footPrint, self.loc[0]+self.fpOffSize[0], self.loc[1]+self.fpOffSize[1], self.fpOffSize[2],
+           self.loc[0], self.loc[1], 50,
+           self.loc[0], self.loc[1],
+           ("0    -1   -1   0" if self.rot == 'H' else "1    0   0   -1")
+)
+        return(self.compString)
+
+    def __str__(self):
+        if len(self.compString) == 0:
+            self.get_comp()
+        return(self.compString)
+
+## demo, two resistors and explicit net names
+if __name__ == "__main__":
+    import sys
+    
+    sch = KiSch()
+    sch.set_descr(title="Python generated schematic with two resistors")
+
+    R1loc = (8000, 5000)
+    R2loc = (8000, 5500)
+    R1 = KiSchCompR("R1", R1loc, val="100")
+    R2 = KiSchCompR("R2", R2loc, val="1k")
+
+    T1 = KiSchLabel("VDD", (R1loc[0]-150, R1loc[1]), 2)
+    T2 = KiSchLabel("R12", (R1loc[0]+150, R1loc[1]), 0)
+    T3 = KiSchLabel("R12", (R2loc[0]-150, R2loc[1]), 2)
+    T4 = KiSchLabel("GND", (R2loc[0]+150, R2loc[1]), 0)
+
+    sch.set_content(str(R1) + str(R2) + str(T1) + str(T2) + str(T3) + str(T4))
+
+    with open(sys.argv[1], "w") as ofile:
+        ofile.write(str(sch))
