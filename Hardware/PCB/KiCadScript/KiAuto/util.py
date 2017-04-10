@@ -2,6 +2,8 @@
 # Utility routines.
 #
 
+from __future__ import print_function
+
 import pcbnew
 ## 1nm is the smallest dimension in KiCAD
 _SCALE = 1000000.0

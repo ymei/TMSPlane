@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
-## This file may be invoked outside of the KiCad GUI.
+## \file
+# This file may be invoked outside of the KiCad GUI.
 #
 # It loads the .kicad_pcb file supplied as the first commandline
 # argument.
+
+from __future__ import print_function
 
 import sys
 import pcbnew
@@ -20,8 +23,8 @@ if __name__ == '__main__':
     print(kp.layerTable)
     kp.print_list_of_nets()
 
-    print kp.get_board_boundary()
-    print kp.get_fp_pad_pos_netname("D1")
+    print(kp.get_board_boundary())
+    print(kp.get_fp_pad_pos_netname("D1"))
 
     kp.place_footprint("/usr/share/kicad/modules/Capacitors_SMD.pretty", "C_0603", "C1", (130e6,100e6))
     kp.set_footprint_nets("C1")

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import time
 
 ## Basic class describing a KiCad schematic
@@ -45,7 +47,10 @@ LIBS:valves
     def set_libs(self, libs):
         self._libs = libs
 
-    def set_layers(self, l0=25, l1=0):
+    def add_to_libs(self, alibs):
+        self._libs += alibs
+
+    def set_layers(self, l0=26, l1=0):
         self._layers = ("EELAYER %d %d\n" % (l0, l1)
                       + "EELAYER END\n"
                        )
@@ -134,6 +139,12 @@ class KiSchComp(object):
         type(self).timeStamp += 1
         return(ts)
 
+    ## str(classobj) will return the representation string of the component
+    def __str__(self):
+        if len(self.compString) == 0:
+            self.get_comp()
+        return(self.compString)
+
 ## Schematic resistor
 #
 class KiSchCompR(KiSchComp):
@@ -155,8 +166,8 @@ F 0 "{:s}" V {:d} {:d} {:d}  0000 C CNN
 F 1 "{:s}" V {:d} {:d} {:d}  0000 C CNN
 F 2 "{:s}" V {:d} {:d} {:d}  0001 C CNN
 F 3 "" H {:d} {:d} {:d}  0001 C CNN
-        1    {:d} {:d}
-        {:s}
+       1    {:d} {:d}
+       {:s}
 $EndComp
 """.format(self.chipName, self.refName,
            self.get_timestamp(),
@@ -166,21 +177,74 @@ $EndComp
            self.footPrint, self.loc[0]+self.fpOffSize[0], self.loc[1]+self.fpOffSize[1], self.fpOffSize[2],
            self.loc[0], self.loc[1], 50,
            self.loc[0], self.loc[1],
-           ("0    -1   -1   0" if self.rot == 'H' else "1    0   0   -1")
+           ("0    -1   -1   0" if self.rot == 'H' else "1    0    0    -1")
 )
         return(self.compString)
 
-    def __str__(self):
-        if len(self.compString) == 0:
-            self.get_comp()
+## Schematic Topmetal-S 1mm version
+#
+class KiSchCompTMS1mm(KiSchComp):
+    ## @param[in] labels netname labels for every pin.
+    def __init__(self, ref="U?", loc=(0, 0), rot='H', val="TMS1mm", fp="",
+                 labels=["a{}".format(i+1) for i in xrange(50)]):
+        super(KiSchCompTMS1mm, self).__init__(2)
+        self.loc = loc
+        self.rot = rot
+        self.chipName = "TMS1mm"
+        self.refName = ref
+        self.value = val
+        self.footPrint = fp
+        self.labels = labels
+        self.label_l0 = (-850, -1150)
+        self.label_ldy = 100
+        self.label_r0 = (850, 1250)
+        self.label_rdy = -100
+
+    def get_comp(self):
+        self.refOffSize = (-50, 1400, 60)
+        self.valOffSize = (0, -1300, 60)
+        self.compString = """$Comp
+L {:s} {:s}
+U 0 1 {:s}
+P {:d} {:d}
+F 0 "{:s}" H {:d} {:d} {:d}  0000 C CNN
+F 1 "{:s}" H {:d} {:d} {:d}  0000 C CNN
+F 2 "{:s}" H {:d} {:d} {:d}  0000 C CNN
+F 3 "" H {:d} {:d} {:d}  0000 C CNN
+       0    {:d} {:d}
+       {:s}
+$EndComp
+""".format(self.chipName, self.refName,
+           self.get_timestamp(),
+           self.loc[0], self.loc[1],
+           self.refName, self.loc[0]+self.refOffSize[0], self.loc[1]+self.refOffSize[1], self.refOffSize[2],
+           self.value, self.loc[0]+self.valOffSize[0], self.loc[1]+self.valOffSize[1], self.valOffSize[2],
+           self.footPrint, self.loc[0]+self.fpOffSize[0], self.loc[1]+self.fpOffSize[1], self.fpOffSize[2],
+           self.loc[0], self.loc[1], 50,
+           self.loc[0], self.loc[1],
+           ("0    -1   -1   0" if self.rot == 'V' else "1    0    0    -1")
+)
+        i = 0
+        for l in self.labels[:24]:
+            tl = KiSchLabel(l, (self.loc[0]+self.label_l0[0],
+                                self.loc[1]+self.label_l0[1]+self.label_ldy*i), 2)
+            i = i + 1
+            self.compString += str(tl)
+        i = 0
+        for l in self.labels[24:]:
+            tl = KiSchLabel(l, (self.loc[0]+self.label_r0[0],
+                                self.loc[1]+self.label_r0[1]+self.label_rdy*i), 0)
+            i = i + 1
+            self.compString += str(tl)
         return(self.compString)
 
-## demo, two resistors and explicit net names
+## Demo, two resistors and explicit net names, and a Topmetal-S
 if __name__ == "__main__":
     import sys
     
     sch = KiSch()
     sch.set_descr(title="Python generated schematic with two resistors")
+    sch.add_to_libs("LIBS:TMSch\n")
 
     R1loc = (8000, 5000)
     R2loc = (8000, 5500)
@@ -192,7 +256,8 @@ if __name__ == "__main__":
     T3 = KiSchLabel("R12", (R2loc[0]-150, R2loc[1]), 2)
     T4 = KiSchLabel("GND", (R2loc[0]+150, R2loc[1]), 0)
 
-    sch.set_content(str(R1) + str(R2) + str(T1) + str(T2) + str(T3) + str(T4))
+    U1 = KiSchCompTMS1mm("U1", (4650,4350), val="TMS1mm")
+    sch.set_content(str(R1) + str(R2) + str(T1) + str(T2) + str(T3) + str(T4) + str(U1))
 
     with open(sys.argv[1], "w") as ofile:
         ofile.write(str(sch))

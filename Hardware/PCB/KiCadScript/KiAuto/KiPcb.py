@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import pcbnew
 
 ## Class operating on an already established board
@@ -69,7 +71,7 @@ class KiPcbOp(object):
         for p in mod.Pads():
             netname = pinNet[int(p.GetPadName())]
             netcode = self._board.GetNetcodeFromNetname(netname)
-            print netname, netcode
+            print(netname, netcode)
             p.SetNetCode(netcode)
         return True
 
