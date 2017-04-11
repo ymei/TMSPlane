@@ -109,8 +109,8 @@ class KiSchLabel(object):
 ## Generic class describing a schematic component
 #
 class KiSchComp(object):
-    ## Shared acroos all class objects to avoid duplicate time stamp.
-    timeStamp = 0
+    ## Shared across all class objects to avoid duplicate time stamp.
+    timeStamp = int(time.time())
     def __init__(self, npins=1):
         self.nPins = npins
         ## location to place the component
@@ -126,7 +126,6 @@ class KiSchComp(object):
         self.footPrint = ""
         self.fpOffSize = (-70, 0, 50)
         self.compString = ""
-        type(self).timeStamp = int(time.time())
 
     ## set x,y location
     def set_location(self, x, y):
@@ -134,9 +133,10 @@ class KiSchComp(object):
         self.locY = y
 
     ## time stamp, hex format of seconds since 1970-01-01 00:00:00 UTC
-    def get_timestamp(self):
-        ts = "{:X}".format(type(self).timeStamp)
-        type(self).timeStamp += 1
+    @staticmethod
+    def get_timestamp():
+        ts = "{:X}".format(KiSchComp.timeStamp)
+        KiSchComp.timeStamp += 1
         return(ts)
 
     ## str(classobj) will return the representation string of the component
@@ -187,7 +187,7 @@ class KiSchCompTMS1mm(KiSchComp):
     ## @param[in] labels netname labels for every pin.
     def __init__(self, ref="U?", loc=(0, 0), rot='H', val="TMS1mm", fp="",
                  labels=["a{}".format(i+1) for i in xrange(50)]):
-        super(KiSchCompTMS1mm, self).__init__(2)
+        super(KiSchCompTMS1mm, self).__init__(50)
         self.loc = loc
         self.rot = rot
         self.chipName = "TMS1mm"
@@ -205,7 +205,7 @@ class KiSchCompTMS1mm(KiSchComp):
         self.valOffSize = (0, -1300, 60)
         self.compString = """$Comp
 L {:s} {:s}
-U 0 1 {:s}
+U 1 1 {:s}
 P {:d} {:d}
 F 0 "{:s}" H {:d} {:d} {:d}  0000 C CNN
 F 1 "{:s}" H {:d} {:d} {:d}  0000 C CNN
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     T3 = KiSchLabel("R12", (R2loc[0]-150, R2loc[1]), 2)
     T4 = KiSchLabel("GND", (R2loc[0]+150, R2loc[1]), 0)
 
-    U1 = KiSchCompTMS1mm("U1", (4650,4350), val="TMS1mm")
+    U1 = KiSchCompTMS1mm("U1", (4650,4350), val="TMS1mm", fp="Topmetal:TMS1mm")
     sch.set_content(str(R1) + str(R2) + str(T1) + str(T2) + str(T3) + str(T4) + str(U1))
 
     with open(sys.argv[1], "w") as ofile:
