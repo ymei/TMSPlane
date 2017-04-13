@@ -8,4 +8,13 @@ It is important to generate a sch containing all needed netnames.  Then generate
 
 ## Software
 ### KiCad
+
 Pull source from https://github.com/KiCad/kicad-source-mirror and compile.
+
+### KiCadScript in Hardware/PCB/KiCadScript/
+```
+cd KiAuto/hexlib/
+python setup.py build
+cd build
+ln -s lib.freebsd-11.0-STABLE-amd64-2.7/hexlib.so .
+```

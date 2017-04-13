@@ -95,10 +95,13 @@ class KiSchLabel(object):
         self.rot = rot
 
     def get_comp(self):
-        self.compString = (
-            "Text Label {:d} {:d} {:d}    60   ~ 0\n".format(self.loc[0], self.loc[1], self.rot)
-          + "{:s}\n".format(self.label)
+        if len(self.label) > 0 :
+            self.compString = (
+                "Text Label {:d} {:d} {:d}    60   ~ 0\n".format(self.loc[0], self.loc[1], self.rot)
+                + "{:s}\n".format(self.label)
             )
+        else:
+            self.compString = ("NoConn ~ {:d} {:d}\n".format(self.loc[0], self.loc[1]))
         return self.compString
 
     def __str__(self):
