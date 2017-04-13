@@ -1,3 +1,5 @@
+## Footprint handling.
+#
 from __future__ import print_function
 import time, math
 
@@ -65,22 +67,34 @@ class TMS1mmFP(KiPcbFp):
         self.ucelld = 8.0
         ## unit cell border [mm]
         self.ucellb = 0.1
+        ## number of bonding pads on the left
+        self.bpln = 24
+        ## number of bonding pads on the right
+        self.bprn = 26
+        ## bonding pads to remove, count starting from 1
+        self.bprmlist = [36, 37, 38, 39, 45, 46]
         ## bonding pcb pad dimension [mm]
-        self.bpdim = (4 * 0.0254, 10 * 0.0254)
+        self.bpdim = (5 * 0.0254, 10 * 0.0254)
         ## separation from chip
-        self.bpsep = 1.4
+        self.bpsep = 1.3
         ## pitch between pads
-        self.bpp = 9.2 * 0.0254
+        self.bpp = 10.0 * 0.0254
         ## pitch between rows
-        self.bprp = 26 * 0.0254
+        self.bprp = 24 * 0.0254
         ## via size
-        self.viasize = (14 * 0.0254, 14 * 0.0254)
+        self.viasize = (22 * 0.0254, 22 * 0.0254)
         ## via drill
         self.viadrill = 8 * 0.0254
-        ## via pitch
-        self.viap = 24 * 0.0254
+        ## via pitch of each row
+        self.viap = [[31 * 0.0254, 60 * 0.0254, 35 * 0.0254, 31 * 0.0254, 35 * 0.0254, 31 * 0.0254, 43 * 0.0254],
+                      34 * 0.0254,
+                      [43 * 0.0254, 31 * 0.0254, 31 * 0.0254, 31 * 0.0254, 31 * 0.0254, 35 * 0.0254, 31 * 0.0254, 31 * 0.0254]]
         ## via separation between rows
-        self.viasep = 25 * 0.0254
+        self.viasep = 42 * 0.0254
+        ## viapadidlist
+        self.viapadidlist = [[16, 14, 13, 17, 19, 23, 22, 18],
+                             [4, 2, 1, 3, 15, 27, 21, 24, 20],
+                             [40, 32, 34, 35, 33, 31, 25, 28, 26]]
 
     def draw_chip_bonding_pads(self, lw=0.01):
         self.padsLoc = [
@@ -184,32 +198,49 @@ class TMS1mmFP(KiPcbFp):
                           [x*(self.ucelld-self.ucellb) for x in corners[i+1]], "F.SilkS", 0.05)
             # "F.CrtYd"
         # bonding pads
-        loc0 = (-self.tmdim[0]/2.0 - self.bpsep, - self.tmcenter[0])
-        for i in xrange(24):
+        y = -self.bpp * (self.bpln - 1) / 4.0 - self.tmcenter[0] + self.tmdim[1]/2.0
+        loc0 = (-self.tmdim[0]/2.0 - self.bpsep, y)
+        for i in xrange(self.bpln):
+            iD = i+1
+            if iD in self.bprmlist:
+                continue
             if i % 2 == 0:
                 loc = (loc0[0], loc0[1] + self.bpp * i/2.0)
             else:
                 loc = (loc0[0] - self.bprp, loc0[1] + self.bpp * i/2.0)
-            self.add_pad(i+1, style="smd", loc=loc, rot=90, size=self.bpdim,layers="F.Cu F.Mask")
+            self.add_pad(iD, style="smd", loc=loc, rot=90, size=self.bpdim,layers="F.Cu F.Mask")
 
-        loc0 = (self.tmdim[0]/2.0 + self.bpsep, - self.tmcenter[0])
-        for i in xrange(26):
+        y = -self.bpp * (self.bprn - 1) / 4.0 - self.tmcenter[0] + self.tmdim[1]/2.0
+        loc0 = (self.tmdim[0]/2.0 + self.bpsep, y)
+        for i in xrange(self.bprn):
+            iD = (self.bpln+self.bprn)-i
+            if iD in self.bprmlist:
+                continue
             if i % 2 == 0:
-                loc = (loc0[0], loc0[1] + self.bpp * i/2.0)
-            else:
                 loc = (loc0[0] + self.bprp, loc0[1] + self.bpp * i/2.0)
-            self.add_pad(50-i, style="smd", loc=loc, rot=90, size=self.bpdim,layers="F.Cu F.Mask")
-        # via pads
-        padIdList = [2, 16, 14, 4, 35, 27, 1, 3, 13, 32, 33, 34, 17, 18, 21, 22, 23, 24, 25, 19, 20, 48]
-        loc0 = (-self.viasep/2.0, -3.0)
-        loc1 = (self.viasep/2.0,  -3.0)
-        for i in xrange(len(padIdList)):
-            if i%2 == 0:
-                loc = (loc0[0], loc0[1] + self.viap * i/2)
             else:
-                loc = (loc1[0], loc1[1] + self.viap * int(i/2))
-            self.add_pad(padIdList[i], shape="circle", loc=loc, size=self.viasize,
-                         drill=self.viadrill, layers="*.Cu")
+                loc = (loc0[0], loc0[1] + self.bpp * i/2.0)
+            self.add_pad(iD, style="smd", loc=loc, rot=90, size=self.bpdim,layers="F.Cu F.Mask")
+        # via pads
+        nr = len(self.viapadidlist)
+        x = - (nr - 1) / 2.0 * self.viasep
+        for n in xrange(len(self.viapadidlist)):
+            nv = len(self.viapadidlist[n])
+            if type(self.viap[n]) == list:
+                y = -sum(self.viap[n]) / 2.0  - self.tmcenter[0] + self.tmdim[1]/2.0
+                s = 0.0
+            else:
+                y = -(nv-1) * self.viap[n] / 2.0 - self.tmcenter[0] + self.tmdim[1]/2.0
+            for i in xrange(len(self.viapadidlist[n])):
+                if type(self.viap[n]) == list:
+                    loc = (x, y+s)
+                    if i < len(self.viap[n]):
+                        s += self.viap[n][i]
+                else:
+                    loc = (x, y+i*self.viap[n])
+                self.add_pad(self.viapadidlist[n][i], shape="circle", loc=loc, size=self.viasize,
+                             drill=self.viadrill, layers="*.Cu")
+            x += self.viasep
 
 # Example
 if __name__ == '__main__':
