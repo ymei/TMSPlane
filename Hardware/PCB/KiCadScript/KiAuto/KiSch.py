@@ -55,8 +55,8 @@ LIBS:valves
                       + "EELAYER END\n"
                        )
 
-    def set_descr(self, sheetid=1, sheettot=1, title="", date="", rev="0", comp="KiSch"):
-        self._descr = ("$Descr USLedger 17000 11000\n"
+    def set_descr(self, paper="USLedger 17000 11000", sheetid=1, sheettot=1, title="", date="", rev="0", comp="KiSch"):
+        self._descr = ("$Descr {:s}\n".format(paper)
                      + "encoding utf-8\n"
                      + "Sheet %d %d\n" % (sheetid, sheettot)
                      + "Title \"" + title + "\"\n"

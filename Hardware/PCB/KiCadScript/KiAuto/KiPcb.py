@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import pcbnew
+from .util import *
 
 ## Class operating on an already established board
 #
@@ -49,10 +50,13 @@ class KiPcbOp(object):
                 rect = d.GetBoundingBox()
             else:
                 rect.Merge(d.GetBoundingBox())
-        return [pcbnew.wxPoint(rect.Centre().x-rect.GetWidth()/2, rect.Centre().y-rect.GetHeight()/2),
-                pcbnew.wxPoint(rect.Centre().x-rect.GetWidth()/2, rect.Centre().y+rect.GetHeight()/2),
-                pcbnew.wxPoint(rect.Centre().x+rect.GetWidth()/2, rect.Centre().y+rect.GetHeight()/2),
-                pcbnew.wxPoint(rect.Centre().x+rect.GetWidth()/2, rect.Centre().y-rect.GetHeight()/2)]
+        if rect:
+            return [pcbnew.wxPoint(rect.Centre().x-rect.GetWidth()/2, rect.Centre().y-rect.GetHeight()/2),
+                    pcbnew.wxPoint(rect.Centre().x-rect.GetWidth()/2, rect.Centre().y+rect.GetHeight()/2),
+                    pcbnew.wxPoint(rect.Centre().x+rect.GetWidth()/2, rect.Centre().y+rect.GetHeight()/2),
+                    pcbnew.wxPoint(rect.Centre().x+rect.GetWidth()/2, rect.Centre().y-rect.GetHeight()/2)]
+        else:
+            return None
 
     ## @param[in] layerId consult layerTable, usually 0: F.Cu, 31: B.Cu
     def place_footprint(self, lib, name, ref="", loc=(0,0), layerId=0):
@@ -63,6 +67,15 @@ class KiPcbOp(object):
         mod.SetLayer(layerId)
         mod.SetReference(ref)
         self._board.Add(mod)
+
+    def move_footprint(self, ref, loc, rot=0.0):
+        mod = self._board.FindModuleByReference(ref)
+        if mod == None:
+            return None
+        if type(loc) == tuple or type(loc) == list:
+            p = pcbnew.wxPoint(loc[0], loc[1])
+        mod.SetPosition(p)
+        mod.SetOrientation(rot*10.0)
 
     def set_footprint_nets(self, ref="", pinNet={1:'/VDD', 2:'/GND'}):
         mod = self._board.FindModuleByReference(ref)
@@ -81,7 +94,12 @@ class KiPcbOp(object):
             return None
         ppn = {}
         for p in mod.Pads():
-            ppn[int(p.GetPadName())] = (p.GetCenter(), p.GetNetname())
+            pn = int(p.GetPadName())
+            if pn in ppn:
+                if len(ppn[pn][0]) > 0:
+                    ppn[pn][0].append(p.GetCenter())
+            else:
+                ppn[pn] = ([p.GetCenter()], p.GetNetname())
         return ppn
 
     def add_track(self, posList=[[0,0], [1,1]], width=None, layerId=0, netName="/GND"):
@@ -119,10 +137,14 @@ class KiPcbOp(object):
             self._board.Add(via)
             via.SetNetCode(netcode)
 
-    def add_zone(self, corners=None, layerId=0, netName="/GND"):
+    def add_zone(self, corners=None, layerId=0, netName="/GND",
+                 clearance=mil(4), minWidth=mil(4), padConn=pcbnew.PAD_ZONE_CONN_FULL):
         netcode = self._board.GetNetcodeFromNetname(netName)
         area = self._board.InsertArea(netcode, 0, layerId, corners[0][0], corners[0][1],
                                       pcbnew.CPolyLine.DIAGONAL_EDGE)
+        area.SetZoneClearance(clearance)
+        area.SetMinThickness(minWidth)
+        area.SetPadConnection(padConn)
         for p in corners[1:]:
             pw = pcbnew.wxPoint(p[0], p[1]) if type(p) == tuple or type(p) == list else p
             area.AppendCorner(pw)

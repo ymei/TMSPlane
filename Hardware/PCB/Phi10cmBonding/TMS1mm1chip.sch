@@ -44,15 +44,15 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L TMS1mm U1
+L TMS1mm U0
 U 1 1 58EEFFC1
 P 8500 5500
-F 0 "U1" H 8450 6900 60  0000 C CNN
+F 0 "U0" H 8450 6900 60  0000 C CNN
 F 1 "TMS1mm" H 8500 4200 60  0000 C CNN
 F 2 "Topmetal:TMS1mm" H 8430 5500 50  0000 C CNN
 F 3 "" H 8500 5500 50  0000 C CNN
-       0    8500 5500
-       1    0    0    -1
+	1    8500 5500
+	1    0    0    -1  
 $EndComp
 Text Label 7650 4350 2    60   ~ 0
 Gring

@@ -171,10 +171,10 @@
     (add_net /VCASP_{})
   )
 
-  (module Topmetal:TMS1mm (layer F.Cu) (tedit 58EF9E67) (tstamp 58EF9880)
+  (module Topmetal:TMS1mm (layer F.Cu) (tedit 58F4651E) (tstamp 58EF9880)
     (at 139.7 107.95)
     (path /58EEFFC1)
-    (fp_text reference U1 (at 0 3.4) (layer F.SilkS)
+    (fp_text reference U0 (at 0 3.4) (layer F.SilkS)
       (effects (font (size 1 1) (thickness 0.15)))
     )
     (fp_text value TMS1mm (at 0 0) (layer F.Fab)

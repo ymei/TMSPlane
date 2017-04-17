@@ -2,12 +2,20 @@
 
 ## PCB
 
-One should use pcbnew manually to setup a PCB `template' with appropriate layer structure, via and track classes etc., then run the Python script that references the template.
+We use KiCad and python script to generate schematic, footprint, and PCB layout with minimal manual intervention.
 
-It is important to generate a sch containing all needed netnames.  Then generate a netlist which is then imported into the template PCB.
-
-### Unit cell
-Phi10cmBonding/TMS1mm1chip
+### Procedure:
+#### Schematic
+1. Draw a Topmetal-S schematic symbol and save in a SCH library ```TMSch.lib```.
+2. run ```GenSch.py``` to generate desired schematic for the TMS array with correct net connectivity.  Here we save the generated file as ```Phi10cmBonding.sch```.
+3. Open ```Phi10cmBonding.sch``` and generate a netlist.
+#### PCB
+1. Run ```KiPcbFp.py``` to generate a footprint ```TMS1mm.kicad_mod``` and save it under ```TMPcb.pretty``` which is a footprint library.
+2. Use pcbnew manually to setup a PCB `template' with appropriate layer structure, via and track classes etc.  Here we call the template ```template.kicad_pcb```.
+3. Draw trace connections within a single footprint using a copy of the template PCB.  Save the single chip SCH and PCB as ```TMS1mm1chip.{sch,kicad_pcb}```.
+4. Make a copy of the template PCB and load the netlist into it.  This step will bring all footprints into the PCB.
+5. Run ```GenPcb.py``` which references the netlist-loaded PCB and ```TMS1mm1chip.pcb```, and generates the correctly laid out array.
+6. **Remember to press `b' in pcbnew** to (re-)fill zones.
 
 ## Software
 ### KiCad
