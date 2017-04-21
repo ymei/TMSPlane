@@ -101,6 +101,8 @@ if __name__ == "__main__":
                         help="Number of chips to place [127]")
     parser.add_argument("-p", "--pitch", type=int, default=4000,
                         help="Pitch between chip symbols [4000]")
+    parser.add_argument("-l", "--ltype", type=str, default="G", choices=["L", "H", "G"],
+                        help="Label type, L (local), H, or G (global) [G]")
     parser.add_argument("ofn", type=str, default="out.sch",
                         help="Output file [.sch]")
     args = parser.parse_args()
@@ -109,7 +111,13 @@ if __name__ == "__main__":
     # print(TMS1mmNetTemplate[5].format(5))
 
     sch = KiSch()
-    sch.set_descr(paper="User 50000 55000", title="Topmetal-S array")
+    sheetid = 1
+    sheettot = 1
+    if args.ltype != "L":
+        sheetid = 2
+        sheettot = 3
+    sch.set_descr(paper="User 50000 55000", sheetid=sheetid, sheettot=sheettot,
+                  title="Topmetal-S array")
     sch.add_to_libs("LIBS:TMSch\n")
     comps = ""
     schCenter = (25000, 27500)
@@ -120,7 +128,8 @@ if __name__ == "__main__":
 
         loc = (int(xy[0])+schCenter[0], schCenter[1]-int(xy[1]))
         labels = get_labels(i, TMS1mmNetTemplate)
-        Un = KiSchCompTMS1mm("U{}".format(i), loc, val="TMS1mm", fp="Topmetal:TMS1mm", labels=labels)
+        Un = KiSchCompTMS1mm("U{}".format(i), loc, val="TMS1mm", fp="Topmetal:TMS1mm",
+                             labels=labels, ltype=args.ltype)
         comps += str(Un)
 
     sch.set_content(comps)

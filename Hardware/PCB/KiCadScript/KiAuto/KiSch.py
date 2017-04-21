@@ -87,17 +87,26 @@ LIBS:valves
 
 ## Text lable for marking nets
 class KiSchLabel(object):
-    ## @param [in] rot 0 - right, 1 - up, 2 - left, 3 - down
-    def __init__(self, label="GND", loc=(0,0), rot=0):
+    ##
+    # @param [in] label name of the label, if empty, a no-connect symbol will be placed
+    # @param [in] rot 0 - right, 1 - up, 2 - left, 3 - down
+    # @param [in] ltype "L" - local, "H" - hierarchical, "G" - global
+    def __init__(self, label="GND", loc=(0,0), rot=0, ltype="L"):
         self.compString = ""
         self.label = label
         self.loc = loc
         self.rot = rot
+        self.ltype = ltype
 
     def get_comp(self):
+        lt = ""
+        di = ""
         if len(self.label) > 0 :
+            if self.ltype != "L":
+                lt = self.ltype
+                di = "BiDi "
             self.compString = (
-                "Text Label {:d} {:d} {:d}    60   ~ 0\n".format(self.loc[0], self.loc[1], self.rot)
+                "Text {:s}Label {:d} {:d} {:d}    60   {:s}~ 0\n".format(lt, self.loc[0], self.loc[1], self.rot, di)
                 + "{:s}\n".format(self.label)
             )
         else:
@@ -189,7 +198,7 @@ $EndComp
 class KiSchCompTMS1mm(KiSchComp):
     ## @param[in] labels netname labels for every pin.
     def __init__(self, ref="U?", loc=(0, 0), rot='H', val="TMS1mm", fp="",
-                 labels=["a{}".format(i+1) for i in xrange(50)]):
+                 labels=["a{}".format(i+1) for i in xrange(50)], ltype="G"):
         super(KiSchCompTMS1mm, self).__init__(50)
         self.loc = loc
         self.rot = rot
@@ -202,6 +211,7 @@ class KiSchCompTMS1mm(KiSchComp):
         self.label_ldy = 100
         self.label_r0 = (850, 1250)
         self.label_rdy = -100
+        self.ltype = ltype
 
     def get_comp(self):
         self.refOffSize = (-50, 1400, 60)
@@ -214,7 +224,7 @@ F 0 "{:s}" H {:d} {:d} {:d}  0000 C CNN
 F 1 "{:s}" H {:d} {:d} {:d}  0000 C CNN
 F 2 "{:s}" H {:d} {:d} {:d}  0000 C CNN
 F 3 "" H {:d} {:d} {:d}  0000 C CNN
-       0    {:d} {:d}
+       1    {:d} {:d}
        {:s}
 $EndComp
 """.format(self.chipName, self.refName,
@@ -228,15 +238,20 @@ $EndComp
            ("0    -1   -1   0" if self.rot == 'V' else "1    0    0    -1")
 )
         i = 0
+        lrot = 2
+        rrot = 0
+        if self.ltype != "L":
+            lrot = 0
+            rrot = 2
         for l in self.labels[:24]:
             tl = KiSchLabel(l, (self.loc[0]+self.label_l0[0],
-                                self.loc[1]+self.label_l0[1]+self.label_ldy*i), 2)
+                                self.loc[1]+self.label_l0[1]+self.label_ldy*i), lrot, self.ltype)
             i = i + 1
             self.compString += str(tl)
         i = 0
         for l in self.labels[24:]:
             tl = KiSchLabel(l, (self.loc[0]+self.label_r0[0],
-                                self.loc[1]+self.label_r0[1]+self.label_rdy*i), 0)
+                                self.loc[1]+self.label_r0[1]+self.label_rdy*i), rrot, self.ltype)
             i = i + 1
             self.compString += str(tl)
         return(self.compString)

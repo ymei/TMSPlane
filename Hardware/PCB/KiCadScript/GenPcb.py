@@ -116,12 +116,12 @@ if __name__ == '__main__':
     board.DeleteZONEOutlines()
     corners=[[mil(2500), mil(1250)], [mil(8500), mil(1250)], [mil(8500), mil(7250)],
              [mil(2500), mil(7250)]]
-    layerNet = [["In1.Cu", "/AGND"], ["In2.Cu", "/AVDD"], ["In3.Cu", "/DGND"], ["In4.Cu", "/DVDD"],
-                ["In5.Cu", "/Ref1"], ["In6.Cu", "/Ref2"], ["In7.Cu", "/Ref3"], ["In8.Cu", "/DGND"],
-                ["In9.Cu", "/Gring"], ["In10.Cu", "/DAC_BufferX2_VREF"],
-                ["In11.Cu", "/SDM_VDD_Shield"], ["In12.Cu", "/LVDS_VREF"],
-                ["In13.Cu", "/GND_NMOSI"], ["In14.Cu", "/GND_VREF"], ["In15.Cu", "/RESET"],
-                ["In16.Cu", "/SDM_testIN"]]
+    layerNet = [["In1.Cu", "AGND"], ["In2.Cu", "AVDD"], ["In3.Cu", "DGND"], ["In4.Cu", "DVDD"],
+                ["In5.Cu", "Ref1"], ["In6.Cu", "Ref2"], ["In7.Cu", "Ref3"], ["In8.Cu", "DGND"],
+                ["In9.Cu", "Gring"], ["In10.Cu", "DAC_BufferX2_VREF"],
+                ["In11.Cu", "SDM_VDD_Shield"], ["In12.Cu", "LVDS_VREF"],
+                ["In13.Cu", "GND_NMOSI"], ["In14.Cu", "GND_VREF"], ["In15.Cu", "RESET"],
+                ["In16.Cu", "SDM_testIN"]]
     for ln in layerNet:
         kp.add_zone(corners, kp.layer_name_to_id(ln[0]), ln[1])
 

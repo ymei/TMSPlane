@@ -10,7 +10,7 @@ class KiPcbOp(object):
     def __init__(self, board):
         self._board = board
         self._io = pcbnew.PCB_IO()
-        self.layerI = {pcbnew.BOARD_GetStandardLayerName(n):n for n in range(pcbnew.LAYER_ID_COUNT)}
+        self.layerI = {pcbnew.BOARD_GetStandardLayerName(n):n for n in range(pcbnew.PCB_LAYER_ID_COUNT)}
         self.layerN = {s:n for n, s in self.layerI.iteritems()}
         # generate a LUT with shape integers to a string
         self.padShapes = {
@@ -27,7 +27,7 @@ class KiPcbOp(object):
     ## called by __init__()
     def compute_layer_table(self):
         self.layerTable = {}
-        for i in range(pcbnew.LAYER_ID_COUNT):
+        for i in range(pcbnew.PCB_LAYER_ID_COUNT):
             self.layerTable[i] = self._board.GetLayerName(i)
         return self.layerTable
 
