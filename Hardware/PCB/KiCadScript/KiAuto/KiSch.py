@@ -193,6 +193,42 @@ $EndComp
 )
         return(self.compString)
 
+## Schematic capacitor
+#
+class KiSchCompC(KiSchComp):
+    def __init__(self, ref="C1", loc=(0, 0), rot='V', val="DNL", fp="Capacitors_SMD:C_0603_HandSoldering"):
+        super(KiSchCompC, self).__init__(2)
+        self.loc = loc
+        self.rot = rot
+        self.chipName = "C"
+        self.refName = ref
+        self.value = val
+        self.footPrint = fp
+
+    def get_comp(self):
+        self.compString = """$Comp
+L {:s} {:s}
+U 1 1 {:s}
+P {:d} {:d}
+F 0 "{:s}" H {:d} {:d} {:d}  0000 L CNN
+F 1 "{:s}" H {:d} {:d} {:d}  0000 L CNN
+F 2 "{:s}" H {:d} {:d} {:d}  0001 C CNN
+F 3 "" H {:d} {:d} {:d}  0001 C CNN
+       1    {:d} {:d}
+       {:s}
+$EndComp
+""".format(self.chipName, self.refName,
+           self.get_timestamp(),
+           self.loc[0], self.loc[1],
+           self.refName, self.loc[0]+self.refOffSize[1], self.loc[1]+self.refOffSize[0], self.refOffSize[2],
+           self.value, self.loc[0]+self.valOffSize[1], self.loc[1]+self.valOffSize[0], self.valOffSize[2],
+           self.footPrint, self.loc[0]+self.fpOffSize[0], self.loc[1]+self.fpOffSize[1], self.fpOffSize[2],
+           self.loc[0], self.loc[1], 50,
+           self.loc[0], self.loc[1],
+           ("0    -1   -1   0" if self.rot == 'H' else "1    0    0    -1")
+)
+        return(self.compString)
+
 ## Schematic Topmetal-S 1mm version
 #
 class KiSchCompTMS1mm(KiSchComp):

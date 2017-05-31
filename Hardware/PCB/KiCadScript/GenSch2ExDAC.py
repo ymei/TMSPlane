@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 ## \file
-# Generate schematic of Topmetal-S array
+# Generate schematic of Topmetal-S array using 2 external DACs per sensor.
 #
-# usage: GenSch.py [-h] [-n NCHIPS] [-p PITCH] ofn
-# 
+# usage: GenSch2ExDAC.py [-h] [-n NCHIPS] [-p PITCH] ofn
+#
 # positional arguments:
 #   ofn                   Output file [.sch]
-# 
+#
 # optional arguments:
 #   -h, --help            show this help message and exit
 #   -n NCHIPS, --nchips NCHIPS
@@ -70,7 +70,7 @@ TMS1mmNetTemplate = {
     43 : "CSA_VBIASP_{}",
     44 : "CSA_VBIASP_{}", # DAC2
     45 : "", # AOUT2_CSA
-    46 : "", # AOUT1_CSA
+    46 : "AOUT1_CSA_{}",
     47 : "AGND",
     48 : "AVDD",
     49 : "AGND",
@@ -116,11 +116,13 @@ if __name__ == "__main__":
     if args.ltype != "L":
         sheetid = 2
         sheettot = 3
-    sch.set_descr(paper="User 50000 55000", sheetid=sheetid, sheettot=sheettot,
+    sch.set_descr(paper="User 20000 22000", sheetid=sheetid, sheettot=sheettot,
                   title="Topmetal-S array")
     sch.add_to_libs("LIBS:TMSch\n")
     comps = ""
-    schCenter = (25000, 27500)
+    schCenter = (10000, 11000)
+    cnYoff = 1650
+    cnXp = 500
 
     for i in xrange(args.nchips):
         qr = hex.l2qr(i)
@@ -128,9 +130,24 @@ if __name__ == "__main__":
 
         loc = (int(xy[0])+schCenter[0], schCenter[1]-int(xy[1]))
         labels = get_labels(i, TMS1mmNetTemplate)
-        Un = KiSchCompTMS1mm("U{}".format(i), loc, val="TMS1mm", fp="Topmetal:TMS1mm",
+        Un = KiSchCompTMS1mm("U{}".format(i), loc, val="TMS1mm", fp="Topmetal:TMS1mm2ExDAC",
                              labels=labels, ltype=args.ltype)
         comps += str(Un)
+        Cn = []
+        Ln = []
+        for j in xrange(3):
+            cloc = (loc[0]-cnXp+j*cnXp, loc[1]+cnYoff)
+            Cn.append(KiSchCompC("C{}".format(i*10+j), cloc, val="1u", fp="Capacitors_SMD:C_0603"))
+            if j == 0:
+                Ln.append(KiSchLabel("DGND", (cloc[0], cloc[1]+150), ltype=args.ltype))
+                Ln.append(KiSchLabel("DVDD", (cloc[0], cloc[1]-150), ltype=args.ltype))
+            else:
+                Ln.append(KiSchLabel("AGND", (cloc[0], cloc[1]+150), ltype=args.ltype))
+                Ln.append(KiSchLabel("AVDD", (cloc[0], cloc[1]-150), ltype=args.ltype))
+        for Ci in Cn:
+            comps += str(Ci)
+        for Li in Ln:
+            comps += str(Li)
 
     sch.set_content(comps)
     with open(args.ofn, "w") as ofile:

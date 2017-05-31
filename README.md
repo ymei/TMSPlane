@@ -10,9 +10,9 @@ We use KiCad and python script to generate schematic, footprint, and PCB layout 
 2. run ```GenSch.py``` to generate desired schematic for the TMS array with correct net connectivity.  Here we save the generated file as ```array.sch```, which is a 2nd-level hierarchical schematic under ```Phi10cmBonding.sch```.
 3. Open ```Phi10cmBonding.sch``` and generate a netlist.
 #### PCB
-1. Run ```KiPcbFp.py``` to generate a footprint ```TMS1mm.kicad_mod``` and save it under ```TMPcb.pretty``` which is a footprint library.  One may need to modify ```~/.config/kicad/fp-lib-table``` in order for KiCad to find the library: ```(lib (name Topmetal)(type KiCad)(uri ${KIPRJMOD}/TMPcb.pretty)(options "")(descr "Topmetal bonding footprints"))```
+1. Run ```KiPcbFp.py``` to generate a footprint ```TMS1mm.kicad_mod``` and save it under ```TMPcb.pretty``` which is a footprint library.  One may need to modify ```~/.config/kicad/fp-lib-table``` in order for KiCad to find the library: ```(lib (name Topmetal)(type KiCad)(uri ${KIPRJMOD}/TMPcb.pretty)(options "")(descr "Topmetal bonding footprints"))```.  An alternative is to save a local ```fp-lib-table``` file in the project directory.
 2. Use pcbnew manually to setup a PCB `template' with appropriate layer structure, via and track classes etc.  Here we call the template ```template.kicad_pcb```.
-3. Draw trace connections within a single footprint using a copy of the template PCB.  Save the single chip SCH and PCB as ```TMS1mm1chip.{sch,kicad_pcb}```.
+3. Draw trace connections within a single footprint using a copy of the template PCB.  Save the single chip SCH and PCB as ```TMS1mm1chip.{sch,kicad_pcb}```.  It is preferable to place TMS1mm module's center at the very center in the unit cell.  It will be used as a reference (local origin).
 4. Make a copy of the template PCB and load the netlist into it.  This step will bring all footprints into the PCB.
 5. Run ```GenPcb.py``` which references the netlist-loaded PCB and ```TMS1mm1chip.pcb```, and generates the correctly laid out array.
 6. **Remember to press `b' in pcbnew** to (re-)fill zones.
@@ -39,7 +39,7 @@ KiCad schematic sheets are organized hierarchically.  Sheet paths are named as `
 
 ## Manufacturer capabilities
 
-[Sunstone capabilityes](http://www.sunstone.com/pcb-manufacturing-capabilities/detailed-capabilities)
+[Sunstone capabilities](http://www.sunstone.com/pcb-manufacturing-capabilities/detailed-capabilities)
 
 |                     | Sunstone preferred | Sunstone capable |
 | ------------------- |:------------------ |:---------------- |

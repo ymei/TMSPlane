@@ -2,15 +2,16 @@
 
 ## \file
 # This file should be invoked outside of the KiCad GUI.
+# Generate layout of Topmetal-S array using 2 external DACs per sensor.
 #
-# usage: GenPcb.py [-h] [-n NCHIPS] ifn ucfn ofn
-# 
+# usage: GenPcb2ExDAC.py [-h] [-n NCHIPS] ifn ucfn ofn
+#
 # positional arguments:
 #   ifn                   Input file with layers already setup and netlist
 #                         loaded
 #   ucfn                  Unit cell file with internal tracks laid out
 #   ofn                   Output file
-# 
+#
 # optional arguments:
 #   -h, --help            show this help message and exit
 #   -n NCHIPS, --nchips NCHIPS
@@ -29,15 +30,52 @@ import pcbnew
 from KiAuto import *
 from KiAuto.HexLib import *
 
-def move_array_elements(board, center=(mil(5500),mil(4250)), pitch=mm(8), nchips=127):
+def get_unitcell_caps(fname, ref="U0"):
+    Cn = []
+
+    pn = pcbnew.LoadBoard(fname)
+    board = pn.GetBoard()
+    kp = KiPcbOp(board)
+    mod = board.FindModuleByReference(ref)
+    if mod == None:
+        return None
+    center = mod.GetPosition()
+
+    i = 0
+    while True:
+        ref = "C{:d}".format(i)
+        i = i + 1
+        mod = board.FindModuleByReference(ref)
+        if mod == None:
+            break
+        loc = mod.GetPosition() - center
+        rot = mod.GetOrientation()
+        layerId = mod.GetLayer()
+        flip = mod.IsFlipped()
+        Cn.append([ref, loc, rot, layerId, flip])
+    return Cn
+
+def move_array_elements(board, center=(mil(5500),mil(4250)), pitch=mm(8), nchips=127, caps=None):
     hex = Hex()
-    kp = KiPcbOp(board)    
+    kp = KiPcbOp(board)
     for i in xrange(nchips):
         qr = hex.l2qr(i)
         xy = hex.qr2xy(pitch, qr)
         loc = (xy[0]+center[0], center[1]-xy[1])
         ref = "U{:d}".format(i)
         kp.move_footprint(ref, loc, rot=0.0)
+        if caps:
+            for ci in caps:
+                j = int(ci[0][1:])
+                ref = "C{:d}".format(i*10+j)
+                cloc = (loc[0] + ci[1][0], loc[1] + ci[1][1])
+                rot = ci[2]
+                flip = ci[4]
+                if(flip):
+                    layerId = None
+                else:
+                    layerId = ci[3]
+                kp.move_footprint(ref, cloc, rot, layerId, flip)
 
 def get_unitcell_tracks(fname, ref="U0"):
     pn = pcbnew.LoadBoard(fname)
@@ -68,7 +106,7 @@ def add_tracks_in_cell(pidTracks, board, ref="U0"):
     mod = board.FindModuleByReference(ref)
     if mod == None:
         return None
-    center = mod.GetPosition()    
+    center = mod.GetPosition()
     for k,v in np.items():
         netname = v[1]
         for track in pidTracks[k]:
@@ -107,7 +145,8 @@ if __name__ == '__main__':
         if args.verbose > 1:
             kp.print_list_of_nets()
 
-    move_array_elements(board, nchips=args.nchips, pitch=mm(args.pitch))
+    Cn = get_unitcell_caps(args.ucfn)
+    move_array_elements(board, nchips=args.nchips, pitch=mm(args.pitch), caps=Cn)
 
     pidTracks = get_unitcell_tracks(args.ucfn)
     for i in xrange(args.nchips):

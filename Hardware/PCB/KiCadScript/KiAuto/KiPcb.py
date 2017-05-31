@@ -61,21 +61,23 @@ class KiPcbOp(object):
     ## @param[in] layerId consult layerTable, usually 0: F.Cu, 31: B.Cu
     def place_footprint(self, lib, name, ref="", loc=(0,0), layerId=0):
         mod = self._io.FootprintLoad(lib, name)
-        if type(loc) == tuple or type(loc) == list:
-            p = pcbnew.wxPoint(loc[0], loc[1])
+        p = pcbnew.wxPoint(loc[0], loc[1]) if type(loc) == tuple or type(loc) == list else loc
         mod.SetPosition(p)
         mod.SetLayer(layerId)
         mod.SetReference(ref)
         self._board.Add(mod)
 
-    def move_footprint(self, ref, loc, rot=0.0):
+    def move_footprint(self, ref, loc, rot=0.0, layerId=None, flip=False):
         mod = self._board.FindModuleByReference(ref)
         if mod == None:
             return None
-        if type(loc) == tuple or type(loc) == list:
-            p = pcbnew.wxPoint(loc[0], loc[1])
+        p = pcbnew.wxPoint(loc[0], loc[1]) if type(loc) == tuple or type(loc) == list else loc
         mod.SetPosition(p)
-        mod.SetOrientation(rot*10.0)
+        if layerId != None:
+            mod.SetLayer(layerId)
+        if flip:
+            mod.Flip(p)
+        mod.SetOrientation(rot)
 
     def set_footprint_nets(self, ref="", pinNet={1:'/VDD', 2:'/GND'}):
         mod = self._board.FindModuleByReference(ref)
