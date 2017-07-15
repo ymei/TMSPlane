@@ -125,4 +125,4 @@ if __name__ == '__main__':
     for ln in layerNet:
         kp.add_zone(corners, kp.layer_name_to_id(ln[0]), ln[1])
 
-    board.Save(args.ofn)
+    pcbnew.SaveBoard(args.ofn, board)

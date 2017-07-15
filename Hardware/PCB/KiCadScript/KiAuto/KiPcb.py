@@ -149,5 +149,5 @@ class KiPcbOp(object):
         area.SetPadConnection(padConn)
         for p in corners[1:]:
             pw = pcbnew.wxPoint(p[0], p[1]) if type(p) == tuple or type(p) == list else p
-            area.AppendCorner(pw)
+            area.AppendCorner(pw, -1)
         area.Hatch()

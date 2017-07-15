@@ -6,7 +6,7 @@ We use KiCad and python script to generate schematic, footprint, and PCB layout 
 
 ### Procedure:
 #### Schematic
-1. Draw a Topmetal-S schematic symbol and save in a SCH library ```TMSch.lib```.
+1. Draw a Topmetal-S schematic symbol and save in a SCH library ```TMSch.lib```.  ```TMSch.lib``` is symlink-ed to every project.  When modifying the library, open the original ```.lib''' file directly instead of opening the symlinks.
 2. run ```GenSch.py``` to generate desired schematic for the TMS array with correct net connectivity.  Here we save the generated file as ```array.sch```, which is a 2nd-level hierarchical schematic under ```Phi10cmBonding.sch```.
 3. Open ```Phi10cmBonding.sch``` and generate a netlist.
 #### PCB
@@ -23,6 +23,15 @@ We use KiCad and python script to generate schematic, footprint, and PCB layout 
 Pull source from https://github.com/KiCad/kicad-source-mirror and compile.
 
 ### KiCadScript in Hardware/PCB/KiCadScript/
+
+#### Run scripts in Pcbnew's python shell:
+```
+import os, sys, runpy
+scriptPath = os.environ['KIPRJMOD'] + "/../KiCadScript"
+sys.path.append(scriptPath)
+sys.argv = ['', '-h']
+fileGlobals = runpy.run_path(scriptPath + "/GenSch2ExDAC.py", run_name="__main__")
+```
 
 #### Compile C source code to be used in python
 ```sh

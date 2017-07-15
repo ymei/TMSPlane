@@ -41,4 +41,4 @@ if __name__ == '__main__':
     kp.add_zone([[mil(4551), mil(4450)], [mil(5950), mil(4450)], [mil(5950), mil(3050)],
                  [mil(5000), mil(3150)], [mil(4551), mil(3350)]])
     
-    board.Save("test.kicad_pcb")
+    pcbnew.SaveBoard("test.kicad_pcb", board)

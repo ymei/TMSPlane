@@ -4,7 +4,7 @@
 # This file should be invoked outside of the KiCad GUI.
 # Generate layout of Topmetal-S array using 2 external DACs per sensor.
 #
-# usage: GenPcb2ExDAC.py [-h] [-n NCHIPS] ifn ucfn ofn
+# usage: GenPcbAout1or2.py [-h] [-n NCHIPS] ifn ucfn ofn
 #
 # positional arguments:
 #   ifn                   Input file with layers already setup and netlist
