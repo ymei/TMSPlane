@@ -142,7 +142,7 @@ class KiPcbOp(object):
     def add_zone(self, corners=None, layerId=0, netName="/GND",
                  clearance=mil(4), minWidth=mil(4), padConn=pcbnew.PAD_ZONE_CONN_FULL):
         netcode = self._board.GetNetcodeFromNetname(netName)
-        area = self._board.InsertArea(netcode, 0, layerId, corners[0][0], corners[0][1],
+        area = self._board.InsertArea(netcode, 0, layerId, int(corners[0][0]), int(corners[0][1]),
                                       pcbnew.CPolyLine.DIAGONAL_EDGE)
         area.SetZoneClearance(clearance)
         area.SetMinThickness(minWidth)

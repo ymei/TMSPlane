@@ -61,13 +61,19 @@ Finished hole dia = drill dia - 4mil
 
 ### Typical board thickness in inch
 ```
-0.062, 0.093, 0.125
+0.062, 0.093, 0.125, 0.0886(14-layer), 0.0756 (16-layer)
 ```
+1oz copper thickness is 34um (1.34mil)
 
 ### Typical drill sizes diameter in inch
 ```
 0.008, 0.014, 0.020, 0.025, 0.029, 0.033, 0.035, 0.040, 0.043, 0.046, 0.052, 0.061,
 0.067, 0.079, 0.088, 0.093, 0.100, 0.110, 0.125, 0.141, 0.150, 0.167, 0.192, 0.251
 ```
+For boards thicker than 100mil, usually drill size cannot be smaller than board thickness / 10 (aspect ratio).
+
 ### Via
 A recommendation: make the drill size diameter the same as the width of the trace, and the pad size roughly twice the diameter.
+
+### Impedance
+width/clearance 6mil/6mil and 4mil/4mil on surface layers, 4mil/7mil and 4mil/10mil inner layers are commonly used for Zo=50Ohm, Zdiff=100Ohm.
