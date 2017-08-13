@@ -97,10 +97,10 @@ $Descr User 27000 28000
 encoding utf-8
 Sheet 1 1
 Title "TMS1mm 19-sensor tiled plane FPGA carrier"
-Date "2017-08-11"
+Date "2017-08-13"
 Rev "0"
 Comp "LBNL"
-Comment1 ""
+Comment1 "Yuan Mei"
 Comment2 ""
 Comment3 ""
 Comment4 ""
@@ -1092,7 +1092,7 @@ NoConn ~ 2000 4900
 Text Notes 2200 2200 0    60   ~ 0
 TMS's SDOs
 Text Notes 550  27450 0    120  ~ 0
-** LAYOUT NOTES **\n\nPlace digital components and route digital traces on the backside wherever possible.\n\nSignal lines are either 100Ohm differential or 50Ohm single-ended.\nSDO_?? and SCK_?? traces are 50Ohm single-ended and should be as short as possible.\n\nMGT_RX/TX lines will carry differential signal beyond 10GHz.  Use caution!\n\nAll ADC_CNVn? traces shall have equal length and minimal length.\nAll ADC_CLK?_{P,N} traces shall have equal length.\nAll ADC_SDO??_{P,N} traces shall have equal length.\nADC_CLK0_LPBK_{P,N} traces shall have length equal to that of ADC_SDO??_{P,N}.\n
+** LAYOUT NOTES **\n\nPlace digital components and route digital traces on the backside wherever possible.\n\nPower connectors CON? shall be placed on the backside and NOT protrude outside of the board edges.\n\nSignal lines are either 100Ohm differential or 50Ohm single-ended.\nSDO_?? and SCK_?? traces are 50Ohm single-ended and should be as short as possible.\n\nMGT_RX/TX lines will carry differential signal beyond 10GHz.  Use caution!\n\nAll ADC_CNVn? traces shall have equal length and minimal length.\nAll ADC_CLK?_{P,N} traces shall have equal length.\nAll ADC_SDO??_{P,N} traces shall have equal length.\nADC_CLK0_LPBK_{P,N} traces shall have length equal to that of ADC_SDO??_{P,N}.\n
 $Comp
 L CDCLVD1208 U19
 U 1 1 59923495
@@ -6270,7 +6270,7 @@ L C C129
 U 1 1 59DC9866
 P 2050 17100
 F 0 "C129" V 2100 16900 50  0000 L CNN
-F 1 "10nF" V 2200 16900 50  0000 L CNN
+F 1 "10nF" V 2000 16850 50  0000 L CNN
 F 2 "Capacitors_SMD:C_0603" H 2088 16950 50  0001 C CNN
 F 3 "" H 2050 17100 50  0000 C CNN
 	1    2050 17100
@@ -6391,7 +6391,7 @@ L C C143
 U 1 1 59DDF34C
 P 2050 18500
 F 0 "C143" V 2100 18300 50  0000 L CNN
-F 1 "10nF" V 2200 18300 50  0000 L CNN
+F 1 "10nF" V 2000 18250 50  0000 L CNN
 F 2 "Capacitors_SMD:C_0603" H 2088 18350 50  0001 C CNN
 F 3 "" H 2050 18500 50  0000 C CNN
 	1    2050 18500
@@ -6547,7 +6547,7 @@ L C C162
 U 1 1 59DF68E8
 P 8900 20100
 F 0 "C162" V 8950 19900 50  0000 L CNN
-F 1 "10nF" V 9050 19900 50  0000 L CNN
+F 1 "10nF" V 8850 19850 50  0000 L CNN
 F 2 "Capacitors_SMD:C_0603" H 8938 19950 50  0001 C CNN
 F 3 "" H 8900 20100 50  0000 C CNN
 	1    8900 20100
@@ -6670,7 +6670,7 @@ L C C144
 U 1 1 59E0AEF9
 P 8900 18500
 F 0 "C144" V 8950 18300 50  0000 L CNN
-F 1 "10nF" V 9050 18300 50  0000 L CNN
+F 1 "10nF" V 8850 18250 50  0000 L CNN
 F 2 "Capacitors_SMD:C_0603" H 8938 18350 50  0001 C CNN
 F 3 "" H 8900 18500 50  0000 C CNN
 	1    8900 18500
@@ -7408,9 +7408,9 @@ Wire Wire Line
 Wire Wire Line
 	17950 2050 17900 2050
 Wire Wire Line
-	17900 2050 17900 2200
+	17900 2200 17900 2050
 Wire Wire Line
-	17900 2200 17150 2200
+	17150 2200 17900 2200
 Wire Wire Line
 	19250 2150 19250 2250
 Wire Wire Line
@@ -7472,9 +7472,9 @@ Wire Wire Line
 Wire Wire Line
 	23000 5350 22950 5350
 Wire Wire Line
-	22950 5350 22950 5500
+	22950 5500 22950 5350
 Wire Wire Line
-	22950 5500 22200 5500
+	22200 5500 22950 5500
 Wire Wire Line
 	24300 5450 24300 5550
 Wire Wire Line
@@ -7569,9 +7569,9 @@ Wire Wire Line
 Wire Wire Line
 	23000 2050 22950 2050
 Wire Wire Line
-	22950 2050 22950 2200
+	22950 2200 22950 2050
 Wire Wire Line
-	22950 2200 22200 2200
+	22200 2200 22950 2200
 Wire Wire Line
 	24300 2150 24300 2250
 Wire Wire Line
@@ -7664,9 +7664,9 @@ Wire Wire Line
 Wire Wire Line
 	23000 3700 22950 3700
 Wire Wire Line
-	22950 3700 22950 3850
+	22950 3850 22950 3700
 Wire Wire Line
-	22950 3850 22200 3850
+	22200 3850 22950 3850
 Wire Wire Line
 	24300 3800 24300 3900
 Wire Wire Line
@@ -8214,9 +8214,9 @@ Wire Wire Line
 Wire Wire Line
 	22950 11550 22800 11550
 Wire Wire Line
-	22800 11550 22800 13000
+	22800 13000 22800 11550
 Wire Wire Line
-	22800 13000 22250 13000
+	22250 13000 22800 13000
 Wire Wire Line
 	21850 12800 21850 12850
 Wire Wire Line
@@ -8412,9 +8412,9 @@ Wire Wire Line
 Wire Wire Line
 	22950 17650 22800 17650
 Wire Wire Line
-	22800 17650 22800 19100
+	22800 19100 22800 17650
 Wire Wire Line
-	22800 19100 22250 19100
+	22250 19100 22800 19100
 Wire Wire Line
 	21850 18900 21850 18950
 Wire Wire Line
@@ -8610,9 +8610,9 @@ Wire Wire Line
 Wire Wire Line
 	16800 17650 16650 17650
 Wire Wire Line
-	16650 17650 16650 19100
+	16650 19100 16650 17650
 Wire Wire Line
-	16650 19100 16100 19100
+	16100 19100 16650 19100
 Wire Wire Line
 	15700 18900 15700 18950
 Wire Wire Line
@@ -8804,9 +8804,9 @@ Wire Wire Line
 Wire Wire Line
 	17950 5400 17900 5400
 Wire Wire Line
-	17900 5400 17900 5550
+	17900 5550 17900 5400
 Wire Wire Line
-	17900 5550 17150 5550
+	17150 5550 17900 5550
 Wire Wire Line
 	19250 5500 19250 5600
 Wire Wire Line
@@ -8950,9 +8950,9 @@ Wire Wire Line
 Wire Wire Line
 	22950 23750 22800 23750
 Wire Wire Line
-	22800 23750 22800 25200
+	22800 25200 22800 23750
 Wire Wire Line
-	22800 25200 22250 25200
+	22250 25200 22800 25200
 Wire Wire Line
 	21850 25000 21850 25050
 Wire Wire Line
@@ -8982,14 +8982,14 @@ Wire Wire Line
 Wire Wire Line
 	21850 24000 21850 24050
 Wire Wire Line
-	22350 24000 22350 24050
+	22350 24050 22350 24000
 Connection ~ 22350 24050
 Connection ~ 22350 23700
 Wire Wire Line
-	21800 23700 21950 23700
+	21450 23700 21950 23700
 Connection ~ 21850 23700
 Wire Wire Line
-	21850 24050 22850 24050
+	21550 24050 22850 24050
 Wire Wire Line
 	22250 23700 22650 23700
 Wire Wire Line
@@ -9148,9 +9148,9 @@ Wire Wire Line
 Wire Wire Line
 	16800 23750 16650 23750
 Wire Wire Line
-	16650 23750 16650 25200
+	16650 25200 16650 23750
 Wire Wire Line
-	16650 25200 16100 25200
+	16100 25200 16650 25200
 Wire Wire Line
 	15700 25000 15700 25050
 Wire Wire Line
@@ -9339,9 +9339,9 @@ Connection ~ 17650 14500
 Wire Wire Line
 	17750 14450 17750 14550
 Wire Wire Line
-	17750 14550 16600 14550
+	16600 14550 17750 14550
 Wire Wire Line
-	16600 14550 16600 12800
+	16600 12800 16600 14550
 Connection ~ 16600 12800
 Wire Wire Line
 	17150 13450 16450 13450
@@ -9437,7 +9437,7 @@ Connection ~ 3900 16850
 Wire Wire Line
 	2400 17150 2350 17150
 Wire Wire Line
-	2350 17150 2350 17500
+	2350 17500 2350 17150
 Wire Wire Line
 	1300 17500 4100 17500
 Wire Wire Line
@@ -9516,7 +9516,7 @@ Connection ~ 3900 18250
 Wire Wire Line
 	2400 18550 2350 18550
 Wire Wire Line
-	2350 18550 2350 18900
+	2350 18900 2350 18550
 Wire Wire Line
 	1300 18900 4100 18900
 Wire Wire Line
@@ -9602,7 +9602,7 @@ Connection ~ 10750 19850
 Wire Wire Line
 	9250 20150 9200 20150
 Wire Wire Line
-	9200 20150 9200 20500
+	9200 20500 9200 20150
 Wire Wire Line
 	8150 20500 10950 20500
 Wire Wire Line
@@ -9682,7 +9682,7 @@ Connection ~ 10750 18250
 Wire Wire Line
 	9250 18550 9200 18550
 Wire Wire Line
-	9200 18550 9200 18900
+	9200 18900 9200 18550
 Wire Wire Line
 	8150 18900 10950 18900
 Wire Wire Line
@@ -9769,7 +9769,7 @@ Connection ~ 4150 20100
 Wire Wire Line
 	3600 21100 3650 21100
 Wire Wire Line
-	3650 21100 3650 21700
+	3650 21700 3650 21100
 Wire Wire Line
 	1300 21700 4600 21700
 Wire Wire Line
@@ -9946,10 +9946,10 @@ Wire Wire Line
 Wire Wire Line
 	7750 4150 7750 4100
 Wire Wire Line
-	7500 3800 7500 3700
+	7500 3700 7500 3800
 Connection ~ 7500 3700
 Wire Wire Line
-	7500 4100 7500 4150
+	7500 4150 7500 4100
 Connection ~ 7500 4150
 Wire Wire Line
 	7250 4100 7250 4150
@@ -9957,61 +9957,61 @@ Connection ~ 7250 4150
 Connection ~ 7750 3700
 Connection ~ 7750 4150
 Wire Wire Line
-	8000 3800 8000 3700
+	8000 3700 8000 3800
 Connection ~ 8000 3700
 Wire Wire Line
-	8000 4100 8000 4150
+	8000 4150 8000 4100
 Connection ~ 8000 4150
 Wire Wire Line
-	8250 4100 8250 4150
+	8250 4150 8250 4100
 Connection ~ 8250 4150
 Wire Wire Line
-	8500 4100 8500 4150
+	8500 4150 8500 4100
 Connection ~ 8500 4150
 Wire Wire Line
-	8750 4100 8750 4150
+	8750 4150 8750 4100
 Connection ~ 8750 4150
 Wire Wire Line
-	9000 4100 9000 4150
+	9000 4150 9000 4100
 Connection ~ 9000 4150
 Wire Wire Line
-	9250 4100 9250 4150
+	9250 4150 9250 4100
 Connection ~ 9250 4150
 Wire Wire Line
-	9500 4100 9500 4150
+	9500 4150 9500 4100
 Connection ~ 9500 4150
 Wire Wire Line
-	9750 4100 9750 4150
+	9750 4150 9750 4100
 Connection ~ 9750 4150
 Wire Wire Line
-	10000 4100 10000 4150
+	10000 4150 10000 4100
 Connection ~ 10000 4150
 Wire Wire Line
-	8250 3800 8250 3700
+	8250 3700 8250 3800
 Connection ~ 8250 3700
 Wire Wire Line
-	8500 3800 8500 3700
+	8500 3700 8500 3800
 Connection ~ 8500 3700
 Wire Wire Line
-	8750 3800 8750 3700
+	8750 3700 8750 3800
 Connection ~ 8750 3700
 Wire Wire Line
-	9000 3800 9000 3700
+	9000 3700 9000 3800
 Connection ~ 9000 3700
 Wire Wire Line
-	9250 3800 9250 3700
+	9250 3700 9250 3800
 Connection ~ 9250 3700
 Wire Wire Line
-	9500 3800 9500 3700
+	9500 3700 9500 3800
 Connection ~ 9500 3700
 Wire Wire Line
-	9750 3800 9750 3700
+	9750 3700 9750 3800
 Connection ~ 9750 3700
 Wire Wire Line
-	10000 3800 10000 3700
+	10000 3700 10000 3800
 Connection ~ 10000 3700
 Wire Wire Line
-	10250 3800 10250 3700
+	10250 3700 10250 3800
 Connection ~ 10250 3700
 Wire Wire Line
 	10500 3700 10500 3800
@@ -10023,10 +10023,10 @@ Wire Wire Line
 	10750 4150 10750 4100
 Connection ~ 10750 4150
 Wire Wire Line
-	10500 4100 10500 4150
+	10500 4150 10500 4100
 Connection ~ 10500 4150
 Wire Wire Line
-	10250 4100 10250 4150
+	10250 4150 10250 4100
 Connection ~ 10250 4150
 Wire Wire Line
 	6950 3700 10750 3700
@@ -10303,7 +10303,7 @@ U 1 1 5991FDF7
 P 14250 5400
 F 0 "X1" H 14330 5642 50  0000 C CNN
 F 1 "Mounting Hole" H 14330 5551 50  0000 C CNN
-F 2 "MTHOLE-M3-3.2MM" H 14250 5275 50  0000 C CNN
+F 2 "MTHOLE-250MIL" H 14250 5275 50  0000 C CNN
 F 3 "" H 14250 5300 50  0001 C CNN
 	1    14250 5400
 	1    0    0    -1  
@@ -10314,7 +10314,7 @@ U 1 1 5991FDFE
 P 14250 5800
 F 0 "X2" H 14330 6042 50  0000 C CNN
 F 1 "Mounting Hole" H 14330 5951 50  0000 C CNN
-F 2 "MTHOLE-M3-3.2MM" H 14250 5675 50  0000 C CNN
+F 2 "MTHOLE-250MIL" H 14250 5675 50  0000 C CNN
 F 3 "" H 14250 5700 50  0001 C CNN
 	1    14250 5800
 	1    0    0    -1  
@@ -10325,7 +10325,7 @@ U 1 1 5991FE05
 P 14250 6200
 F 0 "X3" H 14330 6442 50  0000 C CNN
 F 1 "Mounting Hole" H 14330 6351 50  0000 C CNN
-F 2 "MTHOLE-M3-3.2MM" H 14250 6075 50  0000 C CNN
+F 2 "MTHOLE-250MIL" H 14250 6075 50  0000 C CNN
 F 3 "" H 14250 6100 50  0001 C CNN
 	1    14250 6200
 	1    0    0    -1  
@@ -10336,7 +10336,7 @@ U 1 1 5991FE0C
 P 14250 6600
 F 0 "X4" H 14330 6842 50  0000 C CNN
 F 1 "Mounting Hole" H 14330 6751 50  0000 C CNN
-F 2 "MTHOLE-M3-3.2MM" H 14250 6475 50  0000 C CNN
+F 2 "MTHOLE-250MIL" H 14250 6475 50  0000 C CNN
 F 3 "" H 14250 6500 50  0001 C CNN
 	1    14250 6600
 	1    0    0    -1  
@@ -10351,7 +10351,7 @@ U 1 1 59922B25
 P 14250 7000
 F 0 "X5" H 14330 7242 50  0000 C CNN
 F 1 "Mounting Hole" H 14330 7151 50  0000 C CNN
-F 2 "MTHOLE-M3-3.2MM" H 14250 6875 50  0000 C CNN
+F 2 "MTHOLE-250MIL" H 14250 6875 50  0000 C CNN
 F 3 "" H 14250 6900 50  0001 C CNN
 	1    14250 7000
 	1    0    0    -1  
@@ -10362,7 +10362,7 @@ U 1 1 59923294
 P 14250 7400
 F 0 "X6" H 14330 7642 50  0000 C CNN
 F 1 "Mounting Hole" H 14330 7551 50  0000 C CNN
-F 2 "MTHOLE-M3-3.2MM" H 14250 7275 50  0000 C CNN
+F 2 "MTHOLE-250MIL" H 14250 7275 50  0000 C CNN
 F 3 "" H 14250 7300 50  0001 C CNN
 	1    14250 7400
 	1    0    0    -1  
@@ -10485,4 +10485,22 @@ F 3 "" H 4100 17550 50  0000 C CNN
 	1    4100 17550
 	-1   0    0    1   
 $EndComp
+$Comp
+L CONN_01X02 J7
+U 1 1 59909600
+P 21250 23750
+F 0 "J7" H 21328 23836 50  0000 L CNN
+F 1 "CONN_01X02" H 21328 23745 50  0000 L CNN
+F 2 "SIP-2P" H 21328 23654 50  0000 L CNN
+F 3 "" H 21250 23750 50  0001 C CNN
+	1    21250 23750
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	21450 23800 21550 23800
+Wire Wire Line
+	21550 23800 21550 24050
+Connection ~ 21850 24050
+Text Notes 2550 15800 0    60   ~ 0
+4~~5V input.\n4V preferred.
 $EndSCHEMATC

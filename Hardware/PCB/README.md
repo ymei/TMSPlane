@@ -1,7 +1,11 @@
 # TMS1mmX19 Carrier board (with TE0741 FPGA module)
+
+1. Schematic done in KiCad, .asc netlist generated then imported into Mentor PADS for layout.  Remember to delete all **Nets** and modified/unwanted components in PADS before importing .asc.
+
 ## Features
-1. TMS array power is logic (firmware/software) controlled through two TPS27081A switches.  Due to power-rail sharing, the relevant bias voltages and serial IO are also controlled by the switches.
-2. Serial IO, SDI, SDO, SCK, are multiplexed to drive one column (chain) at a time.  SDI and SCK have `high' as their idle states.
+1. TMS array power is logic (firmware/software) controlled via LDO EN pins.  Due to power-rail sharing, the relevant bias voltages and serial IO are also controlled by the switches.
+2. All LDO design, no DC/DC.  For maximal efficiency, supply 4V power.  Maximum 5V allowed.
+3. Serial IO, SDI, SDO, SCK, are multiplexed to drive one column (chain) at a time.  SDI and SCK have `high' as their idle states.
 
 ## Power requirement
 
