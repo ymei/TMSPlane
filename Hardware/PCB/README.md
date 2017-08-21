@@ -49,6 +49,42 @@ DVDD2V5 requires total 545.5mA
 15 In14.Cu DVDD
 16 B.Cu    Bottom copper layer
 
+### 3.0mm-thick board produced by Edadoc
+```
+    Thickness(mil),   material,  DK
+F.Cu 0.5oz+plating
+    2.73 PP(1080 RC64)           3.81
+In1.Cu  1oz
+    5.12 CORE                    3.99
+In2.Cu  1oz
+    6.84 PP(1080 RC64+2116 RC57) 3.91
+In3.Cu  1oz
+    3.94 CORE                    4.12
+In4.Cu  1oz
+    5.04 PP(1080 RC64+1080 RC64) 3.81
+In5.Cu  1oz
+   18.11 CORE                    4.16
+In6.Cu  1oz
+    3.55 PP(106 RC76+106 RC76)   3.55
+In7.Cu  1oz
+    5.91 CORE                    4.25
+In8.Cu  1oz
+    4.01 PP(106 RC76+106 RC76)   3.55
+In9.Cu  1oz
+   18.11 CORE                    4.16
+In10.Cu 1oz
+    4.81 PP(1080 RC64+1080 RC64) 3.81
+In11.Cu 1oz
+    3.94 CORE                    4.12
+In12.Cu 1oz
+    6.30 PP(2116 RC57+1080 RC64) 3.91
+In13.Cu 1oz
+    5.12 CORE                    3.99
+In14.Cu 1oz
+    2.88 PP(1080 RC64)           3.81
+B.Cu 0.5oz+plating
+```
+
 ## FABRICATION NOTES
 **All notes are applicable unless otherwise specified**
 
