@@ -10,7 +10,7 @@
 -- (c) Copyright 2009 - 2014 Xilinx, Inc. All rights reserved.
 --
 -- This file contains confidential and proprietary information
--- of Xilinx, Inc. and is protected under U.S. and 
+-- of Xilinx, Inc. and is protected under U.S. and
 -- international copyright and other intellectual property
 -- laws.
 --
@@ -128,27 +128,27 @@ begin
   reset_counter_done <= reset_counter(8);
 
   -- ymei
-  ibufds_inst : IBUFDS
-    GENERIC MAP (
-      DIFF_TERM    => true, -- Differential Termination
-      IBUF_LOW_PWR => false, -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
-      IOSTANDARD   => "LVDS"
-    )
-    PORT MAP (
-      O  => refclk_i, -- Buffer output
-      I  => refclk_p, -- Diff_p buffer input (connect directly to top-level port)
-      IB => refclk_n  -- Diff_n buffer input (connect directly to top-level port)
-    );
+  -- ibufds_inst : IBUFDS
+  --   GENERIC MAP (
+  --     DIFF_TERM    => true, -- Differential Termination
+  --     IBUF_LOW_PWR => false, -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
+  --     IOSTANDARD   => "LVDS"
+  --   )
+  --   PORT MAP (
+  --     O  => refclk_i, -- Buffer output
+  --     I  => refclk_p, -- Diff_p buffer input (connect directly to top-level port)
+  --     IB => refclk_n  -- Diff_n buffer input (connect directly to top-level port)
+  --   );
 
-  -- ibufds_inst : IBUFDS_GTE2
-  -- port map
-  -- (
-  --    O     => refclk_i,
-  --    ODIV2 => open,
-  --    CEB   => '0',
-  --     I   => refclk_p,
-  --     IB  => refclk_n
-  -- );
+  ibufds_inst : IBUFDS_GTE2
+  port map
+  (
+     O     => refclk_i,
+     ODIV2 => open,
+     CEB   => '0',
+      I   => refclk_p,
+      IB  => refclk_n
+  );
 
   refclk <= refclk_i;
 
@@ -254,6 +254,3 @@ begin
   end process;
 
 end wrapper;
-
-
-

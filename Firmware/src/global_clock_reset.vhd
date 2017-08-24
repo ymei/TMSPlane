@@ -1,24 +1,24 @@
 ----------------------------------------------------------------------------------
--- Company: 
+-- Company:
 -- Engineer: Yuan Mei
--- 
+--
 -- Create Date: 12/13/2013 07:56:40 PM
--- Design Name: 
+-- Design Name:
 -- Module Name: global_clock_reset - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
+-- Project Name:
+-- Target Devices:
+-- Tool Versions:
+-- Description:
 --
 -- This module encapsulates the main clock generation and its proepr resetting.
 -- It also provides a global reset signal output upon stable clock's pll lock.
 --
--- Dependencies: 
--- 
+-- Dependencies:
+--
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
--- 
+--
 ----------------------------------------------------------------------------------
 
 LIBRARY ieee;
@@ -41,6 +41,7 @@ ENTITY global_clock_reset IS
     -- output
     GLOBAL_RST : OUT std_logic;
     SYS_CLK    : OUT std_logic;
+    LOCKED     : OUT std_logic;
     CLK_OUT1   : OUT std_logic;
     CLK_OUT2   : OUT std_logic;
     CLK_OUT3   : OUT std_logic;
@@ -102,12 +103,12 @@ BEGIN
     PORT MAP (
       -- Clock in ports
       clk_in1  => sys_clk_i,
-      -- Clock out ports  
+      -- Clock out ports
       clk_out1 => CLK_OUT1,
       clk_out2 => CLK_OUT2,
       clk_out3 => CLK_OUT3,
       clk_out4 => CLK_OUT4,
-      -- Status and control signals                
+      -- Status and control signals
       reset    => dcm_reset,
       locked   => dcm_locked
     );
@@ -121,4 +122,5 @@ BEGIN
       GLOBAL_RST  => GLOBAL_RST
   );
 
+  LOCKED <= dcm_locked;
 END Behavioral;

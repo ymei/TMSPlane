@@ -1,10 +1,10 @@
-#Topmetal-S charge plane control and readout
+# Topmetal-S charge plane control and readout
 ## Generate the project after git clone --recurse-submodules
 ```
 # Make sure there are following lines in config/project.tcl:
     # Create project
     create_project top ./ # possibly with -part xc7k325tffg900-2
-# then 
+# then
     mkdir top; cd top/
     vivado -mode tcl -source ../config/project.tcl
 # open GUI
@@ -21,12 +21,39 @@
 # project.tcl is generated via File->Write Project Tcl with everything unchecked.
 ```
 
+## GTX / aurora 64b/66b
+### KC705
+* SMA and SFP rx/tx in package XC7K325TFFG900 are in bank/quad 117.
+* a 125MHz fixed clock is provided at MGTREFCLK0 (GTXE2_COMMON_X0Y2)
+* Si5324 clock in bank/quad 116 can be used to provide a second refclk to bank/quad 117 (GTXE2_COMMON_X0Y1)
+* SMA_MGT_TX/RX are in GTXE2_CHANNEL_X0Y8 (select in aurora coregen)
+* SFP_TX/RX are in GTXE2_CHANNEL_X0Y10.  Useful for LOC constraint.
+#### Aurora 64B66B coregen
+* Line Rate 10.0 Gbps
+* GT Refclk 125.0 MHz
+* INIT clk 100.0 MHz
+* GT DRP clk 100.0 MHz
+* Dataflow Mode Duplex
+* Interface Streaming
+* Flow Control UFC
+* Unckeck USER K and Little Endian
+* No framing, no CRC
+* DRP Mode Native
+* Uncheck Lab tools and additional ports
+* Shared logic in example design
+* Copy ```aurora_64b66b_0_ex/aurora_64b66b_0_ex.srcs/shared_logic/*``` to ```src/aurora64b66b/KC705/```
+
+In `top', the byte ordering is handled by declaring all signals as ```(n DOWNTO 0)``` and assign directly to the core.  The core considers ```i=0``` as the MSB for sizes etc.  In HDL the direct assignment doesn't change bit order but considers arrays of wire-pins physically plug together regardless of the labeling.
+
+## ten_gig_eth
+When pcs_pma core is updated, open its example design and compare to the source to update.  Updates in the source were marked with --ymei
+
 ## Generating a PROM file (MCS)
 ### KC705
 ```
 In iMPACT, select BPI Flash Configure Single FPGA
 Kintex7 128M, MCS, x16, no extra data
-BPI PROM, 28F00AP30, 16 bit, RS Pins to 25:24 
+BPI PROM, 28F00AP30, 16 bit, RS Pins to 25:24
 Erase before programming
 
 Mode switch: M2 M1 M0

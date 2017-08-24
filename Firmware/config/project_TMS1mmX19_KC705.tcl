@@ -168,6 +168,11 @@ set files [list \
  "[file normalize "$origin_dir/../src/i2c/i2c_master_core.vhd"]"\
  "[file normalize "$origin_dir/../src/i2c/i2c_master.vhd"]"\
  "[file normalize "$origin_dir/../src/i2c/i2c_write_regmap.vhd"]"\
+ "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_support_reset_logic.v"]"\
+ "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_clock_module.v"]"\
+ "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_gt_common_wrapper.v"]"\
+ "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_support.v"]"\
+ "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b.v"]"\
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -688,6 +693,19 @@ add_files -norecurse -fileset $obj $files
 # Set 'sources_1' fileset file properties for local files
 # None
 
+# Set 'sources_1' fileset object
+set obj [get_filesets sources_1]
+set files [list \
+ "[file normalize "$origin_dir/../ipcore_dir/KC705/aurora_64b66b_0/aurora_64b66b_0.xci"]"\
+]
+add_files -norecurse -fileset $obj $files
+
+# Set 'sources_1' fileset file properties for remote files
+# None
+
+# Set 'sources_1' fileset file properties for local files
+# None
+
 # Create 'constrs_1' fileset (if not found)
 if {[string equal [get_filesets -quiet constrs_1] ""]} {
   create_fileset -constrset constrs_1
@@ -747,6 +765,7 @@ if {[string equal [get_runs -quiet impl_1] ""]} {
 }
 set obj [get_runs impl_1]
 set_property "needs_refresh" "1" $obj
+set_property "steps.write_bitstream.tcl.pre" "[file normalize "$origin_dir/../config/write_bitstream_pre.tcl"]" $obj
 set_property "steps.write_bitstream.args.readback_file" "0" $obj
 set_property "steps.write_bitstream.args.verbose" "0" $obj
 

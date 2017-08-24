@@ -205,8 +205,8 @@ ARCHITECTURE arch OF i2c_write_regmap IS
     (16#68#, 136, 16#40#),
     OTHERS => (-1, -1, -1));
 
-  SIGNAL regmap     : regmap_t := regmap_Si5324_125MHz;
-  -- SIGNAL regmap     : regmap_t := read_regmap_fromfile(REGMAP_FNAME);  
+  SIGNAL regmap     : regmap_t := regmap_Si5324_156_25MHz;
+  -- SIGNAL regmap     : regmap_t := read_regmap_fromfile(REGMAP_FNAME);
   SIGNAL addrval    : addrval_t;
   SIGNAL i2cStart   : std_logic;
   SIGNAL i2cBusy    : std_logic;
@@ -241,7 +241,7 @@ BEGIN
       SDA_t     => SDA_t,
       SCL       => SCL
     );
-  
+
   PROCESS (CLK, RESET) IS
     VARIABLE cnt : integer;
     VARIABLE i   : integer;

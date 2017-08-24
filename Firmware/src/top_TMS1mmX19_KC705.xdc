@@ -1,25 +1,28 @@
 # KC705 configuration
 set_property CFGBVS VCCO [current_design]
 set_property CONFIG_VOLTAGE 2.5 [current_design]
+# enable if ENABLE_TEN_GIG_ETH = false
+set_property BITSTREAM.General.UnconstrainedPins {Allow} [current_design]
 
 # 200MHz onboard diff clock
 create_clock -name system_clock -period 5.0 [get_ports {SYS_CLK_P}]
 # 156.25MHz
 create_clock -name user_clock   -period 6.4 [get_ports {USER_CLK_P}]
+create_clock -name si5324_clock -period 6.4 [get_ports {SI5324CLK_P}]
 # 125MHz
 create_clock -name sgmii_clock  -period 8.0 [get_ports {SGMIICLK_Q0_P}]
 
-# PadFunction: IO_L12P_T1_MRCC_33 
+# PadFunction: IO_L12P_T1_MRCC_33
 set_property VCCAUX_IO DONTCARE [get_ports {SYS_CLK_P}]
 set_property IOSTANDARD DIFF_SSTL15 [get_ports {SYS_CLK_P}]
 set_property PACKAGE_PIN AD12 [get_ports {SYS_CLK_P}]
 
-# PadFunction: IO_L12N_T1_MRCC_33 
+# PadFunction: IO_L12N_T1_MRCC_33
 set_property VCCAUX_IO DONTCARE [get_ports {SYS_CLK_N}]
 set_property IOSTANDARD DIFF_SSTL15 [get_ports {SYS_CLK_N}]
 set_property PACKAGE_PIN AD11 [get_ports {SYS_CLK_N}]
 
-# Set DCI_CASCADE          
+# Set DCI_CASCADE
 set_property slave_banks {32 34} [get_iobanks 33]
 
 # 156.25MHz clock, IOSTANDARD is overridden in IBUFDS
@@ -32,10 +35,17 @@ set_property PACKAGE_PIN K29 [get_ports {USER_CLK_N}]
 set_property PACKAGE_PIN G8 [get_ports {SGMIICLK_Q0_P}]
 set_property PACKAGE_PIN G7 [get_ports {SGMIICLK_Q0_N}]
 
+# External clock IC Si5324
+set_property PACKAGE_PIN AE20 [get_ports SI5324_RSTn]
+set_property IOSTANDARD LVCMOS25 [get_ports SI5324_RSTn]
+set_property PACKAGE_PIN L8 [get_ports SI5324CLK_P]
+set_property PACKAGE_PIN L7 [get_ports SI5324CLK_N]
+
 # clock domain interaction
-set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks system_clock] -group [get_clocks -include_generated_clocks sgmii_clock]
-set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks system_clock] -group [get_clocks -include_generated_clocks user_clock]
-set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks user_clock] -group [get_clocks -include_generated_clocks sgmii_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks system_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks user_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks si5324_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks sgmii_clock]
 # seems we ran out of bufg's
 # set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets global_clock_reset_inst/I]
 # false path of resetter
@@ -164,6 +174,18 @@ set_false_path -to [get_pins -of_objects [get_cells -hierarchical -filter {NAME 
 
 #>-- control interface -->
 
+#<-- SMA MGT --<
+
+set_property PACKAGE_PIN K2 [get_ports SMA_MGT_TX_P]
+set_property PACKAGE_PIN K1 [get_ports SMA_MGT_TX_N]
+set_property PACKAGE_PIN K6 [get_ports SMA_MGT_RX_P]
+set_property PACKAGE_PIN K5 [get_ports SMA_MGT_RX_N]
+
+set_property LOC GTXE2_CHANNEL_X0Y8 [get_cells aurora_64b66b_inst/aurora_64b66b_0_support_inst/aurora_64b66b_0_i/inst/aurora_64b66b_0_wrapper_i/aurora_64b66b_0_multi_gt_i/aurora_64b66b_0_gtx_inst/gtxe2_i]
+set_property LOC GTXE2_COMMON_X0Y2 [get_cells aurora_64b66b_inst/aurora_64b66b_0_support_inst/gt_common_support/gtxe2_common_i]
+
+#>--SMA MGT -->
+
 #<-- ten gig eth interface --<
 
 # SFP
@@ -176,19 +198,19 @@ set_property PACKAGE_PIN H1 [get_ports SFP_TX_N]
 set_property PACKAGE_PIN G4 [get_ports SFP_RX_P]
 set_property PACKAGE_PIN G3 [get_ports SFP_RX_N]
 
+# False paths for async reset removal synchronizers
+set_false_path -to [get_pins -of_objects [get_cells -hierarchical -filter {NAME =~ *ten_gig_eth_pcs_pma_core_support_layer_i/*shared*sync1_r_reg*}] -filter {NAME =~ *PRE}]
+set_false_path -to [get_pins -of_objects [get_cells -hierarchical -filter {NAME =~ *ten_gig_eth_pcs_pma_core_support_layer_i/*shared*sync1_r_reg*}] -filter {NAME =~ *CLR}]
+
+# Constraint for GT location
+#set_property LOC GTXE2_CHANNEL_X0Y10 [get_cells ten_gig_eth_pcs_pma_core_support_layer_i/ten_gig_eth_pcs_pma_i/*/gt0_gtwizard_10gbaser_multi_gt_i/gt0_gtwizard_10gbaser_i/gtxe2_i]
+set_property LOC GTXE2_COMMON_X0Y2 [get_cells ten_gig_eth_cores.ten_gig_eth_inst/ten_gig_eth_pcs_pma_inst/ten_gig_eth_pcs_pma_core_support_layer_i/ten_gig_eth_pcs_pma_gt_common_block/gtxe2_common_0_i]
+
 # create_generated_clock -name ddrclock -divide_by 1 -invert -source [get_pins *rx_clk_ddr/C] [get_ports xgmii_rx_clk]
 # set_output_delay -max 1.500 -clock [get_clocks ddrclock] [get_ports * -filter {NAME =~ *xgmii_rxd*}]
 # set_output_delay -min -1.500 -clock [get_clocks ddrclock] [get_ports * -filter {NAME =~ *xgmii_rxd*}]
 # set_output_delay -max 1.500 -clock [get_clocks ddrclock] [get_ports * -filter {NAME =~ *xgmii_rxc*}]
 # set_output_delay -min -1.500 -clock [get_clocks ddrclock] [get_ports * -filter {NAME =~ *xgmii_rxc*}]
-
-# False paths for async reset removal synchronizers
-set_false_path -to [get_pins -of_objects [get_cells -hierarchical -filter {NAME =~ *ten_gig_eth_pcs_pma_core_support_layer_i/*shared*sync1_r_reg*}] -filter {NAME =~ *PRE}]
-set_false_path -to [get_pins -of_objects [get_cells -hierarchical -filter {NAME =~ *ten_gig_eth_pcs_pma_core_support_layer_i/*shared*sync1_r_reg*}] -filter {NAME =~ *CLR}]
-
-## Sample constraint for GT location
-#set_property LOC GTXE2_CHANNEL_X0Y18 [get_cells ten_gig_eth_pcs_pma_core_support_layer_i/ten_gig_eth_pcs_pma_i/*/gt0_gtwizard_10gbaser_multi_gt_i/gt0_gtwizard_10gbaser_i/gtxe2_i]
-#set_property LOC GTXE2_COMMON_X0Y4 [get_cells ten_gig_eth_pcs_pma_core_support_layer_i/ten_gig_eth_pcs_pma_gt_common_block/gtxe2_common_0_i]
 
 #>-- ten gig eth interface -->
 
@@ -269,12 +291,6 @@ set_property PACKAGE_PIN K21     [get_ports I2C_SCL]
 set_property IOSTANDARD LVCMOS25 [get_ports I2C_SCL]
 set_property PACKAGE_PIN L21     [get_ports I2C_SDA]
 set_property IOSTANDARD LVCMOS25 [get_ports I2C_SDA]
-
-# External clock IC
-set_property PACKAGE_PIN AE20 [get_ports SI5324_RSTn]
-set_property IOSTANDARD LVCMOS25 [get_ports SI5324_RSTn]
-set_property PACKAGE_PIN L8 [get_ports SI5324CLK_P]
-set_property PACKAGE_PIN L7 [get_ports SI5324CLK_N]
 
 # SMA
 set_property PACKAGE_PIN L25 [get_ports {USER_SMA_CLOCK_P}]
