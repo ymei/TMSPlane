@@ -258,6 +258,31 @@ ARCHITECTURE Behavioral OF top IS
       STATUS              : OUT std_logic_vector(15 DOWNTO 0)
     );
   END COMPONENT;
+  COMPONENT fifo_over_ufc
+    GENERIC (
+      FIFO_DATA_WIDTH   : positive := 32;
+      AURORA_DATA_WIDTH : positive := 64
+    );
+    PORT (
+      RESET            : IN  std_logic;
+      AURORA_USER_CLK  : IN  std_logic;
+      AURORA_TX_REQ    : OUT std_logic;
+      AURORA_TX_MS     : OUT std_logic_vector(7 DOWNTO 0);
+      AURORA_TX_TREADY : IN  std_logic;
+      AURORA_TX_TDATA  : OUT std_logic_vector(AURORA_DATA_WIDTH-1 DOWNTO 0);
+      AURORA_TX_TVALID : OUT std_logic;
+      AURORA_RX_TDATA  : IN  std_logic_vector(AURORA_DATA_WIDTH-1 DOWNTO 0);
+      AURORA_RX_TVALID : IN  std_logic;
+      FIFO_CLK         : OUT std_logic;
+      TX_FIFO_Q        : OUT std_logic_vector(FIFO_DATA_WIDTH-1 DOWNTO 0);
+      TX_FIFO_WREN     : OUT std_logic;
+      TX_FIFO_FULL     : IN  std_logic;
+      RX_FIFO_Q        : IN  std_logic_vector(FIFO_DATA_WIDTH-1 DOWNTO 0);
+      RX_FIFO_RDEN     : OUT std_logic;
+      RX_FIFO_EMPTY    : IN  std_logic;
+      ERR              : OUT std_logic
+    );
+  END COMPONENT;
   ---------------------------------------------> gtx / aurora
   ---------------------------------------------< gig_eth
   COMPONENT gig_eth
@@ -1048,21 +1073,44 @@ BEGIN
       STATUS              => aurora_status
     );
   aurora_reset <= reset OR pulse_reg(1);
-  -- -- debug
-  aurora_ufc_tx_req <= pulse_reg(8);
-  ufc_tx_tvalid_edge_sync_inst : edge_sync
-    GENERIC MAP (
-      EDGE => '0'
-    )
+  fifo_over_ufc_inst : fifo_over_ufc
     PORT MAP (
-      RESET => reset,
-      CLK   => aurora_user_clk,
-      EI    => aurora_ufc_tx_req,
-      SO    => aurora_ufc_tx_tvalid
+      RESET            => reset,
+      AURORA_USER_CLK  => aurora_user_clk,
+      AURORA_TX_REQ    => aurora_ufc_tx_req,
+      AURORA_TX_MS     => aurora_ufc_tx_ms,
+      AURORA_TX_TREADY => aurora_ufc_tx_tready,
+      AURORA_TX_TDATA  => aurora_ufc_tx_tdata,
+      AURORA_TX_TVALID => aurora_ufc_tx_tvalid,
+      AURORA_RX_TDATA  => aurora_ufc_rx_tdata,
+      AURORA_RX_TVALID => aurora_ufc_rx_tvalid,
+      FIFO_CLK         => gig_eth_tx_fifo_wrclk,
+      TX_FIFO_Q        => gig_eth_tx_fifo_q,
+      TX_FIFO_WREN     => gig_eth_tx_fifo_wren,
+      TX_FIFO_FULL     => gig_eth_tx_fifo_full,
+      RX_FIFO_Q        => gig_eth_rx_fifo_q,
+      RX_FIFO_RDEN     => gig_eth_rx_fifo_rden,
+      RX_FIFO_EMPTY    => gig_eth_rx_fifo_empty,
+      ERR              => LED8Bit(1)
     );
-  aurora_ufc_tx_tdata <= x"0000_0000_0000" & config_reg(30*16+15 DOWNTO 30*16);
-  aurora_ufc_tx_ms    <= config_reg(29*16+7 DOWNTO 29*16);  -- don't reverse bit-order here
+  gig_eth_tcp_use_fifo  <= '1';
+  gig_eth_rx_fifo_rdclk <= gig_eth_tx_fifo_wrclk;
 
+  -- -- debug
+  -- aurora_ufc_tx_req <= pulse_reg(8);
+  -- ufc_tx_tvalid_edge_sync_inst : edge_sync
+  --   GENERIC MAP (
+  --     EDGE => '0'
+  --   )
+  --   PORT MAP (
+  --     RESET => reset,
+  --     CLK   => aurora_user_clk,
+  --     EI    => aurora_ufc_tx_req,
+  --     SO    => aurora_ufc_tx_tvalid
+  --   );
+  -- aurora_ufc_tx_tdata <= x"0000_0000_0000" & config_reg(30*16+15 DOWNTO 30*16);
+  -- aurora_ufc_tx_ms    <= config_reg(29*16+7 DOWNTO 29*16);  -- don't reverse bit-order here
+  --
   dbg_ila1_inst : dbg_ila1
     PORT MAP (
       CLK    => aurora_user_clk,
@@ -1070,7 +1118,7 @@ BEGIN
       PROBE1 => dbg_ila1_probe1
     );
   dbg_ila1_probe0 <=
-    "00000" & aurora_status(2) & aurora_status(1) & aurora_status(0)
+    "0000" & gig_eth_rx_fifo_empty & aurora_status(2) & aurora_status(1) & aurora_status(0)
     & aurora_reset & aurora_ufc_in_progress_n & aurora_ufc_rx_tlast & aurora_ufc_rx_tvalid
     & aurora_ufc_tx_req & aurora_ufc_tx_tready & aurora_ufc_tx_tvalid & aurora_tx_tready;
   dbg_ila1_probe1 <= aurora_ufc_rx_tdata(7 DOWNTO 0) & aurora_ufc_tx_tdata(7 DOWNTO 0);
@@ -1136,20 +1184,20 @@ BEGIN
     --gig_eth_rx_tready <= gig_eth_tx_tready;
 
     -- receive to cmd_fifo
-    gig_eth_tcp_use_fifo         <= '1';
-    gig_eth_rx_fifo_rdclk        <= control_clk;
-    cmd_fifo_q(31 DOWNTO 0)      <= gig_eth_rx_fifo_q;
-    dbg_ila_probe0(63 DOWNTO 32) <= gig_eth_rx_fifo_q;
-    cmd_fifo_empty               <= gig_eth_rx_fifo_empty;
-    gig_eth_rx_fifo_rden         <= cmd_fifo_rdreq;
+    -- gig_eth_tcp_use_fifo         <= '1';
+    -- gig_eth_rx_fifo_rdclk        <= control_clk;
+    -- cmd_fifo_q(31 DOWNTO 0)      <= gig_eth_rx_fifo_q;
+    -- dbg_ila_probe0(63 DOWNTO 32) <= gig_eth_rx_fifo_q;
+    -- cmd_fifo_empty               <= gig_eth_rx_fifo_empty;
+    -- gig_eth_rx_fifo_rden         <= cmd_fifo_rdreq;
 
     -- send control_fifo data through gig_eth_tx_fifo
-    gig_eth_tx_fifo_wrclk <= clk_125MHz;
+    -- gig_eth_tx_fifo_wrclk <= clk_125MHz;
     -- connect FWFT fifo interface
-    control_fifo_rdclk    <= gig_eth_tx_fifo_wrclk;
-    gig_eth_tx_fifo_q     <= control_fifo_q(31 DOWNTO 0);
-    gig_eth_tx_fifo_wren  <= NOT control_fifo_empty;
-    control_fifo_rdreq    <= NOT gig_eth_tx_fifo_full;
+    -- control_fifo_rdclk    <= gig_eth_tx_fifo_wrclk;
+    -- gig_eth_tx_fifo_q     <= control_fifo_q(31 DOWNTO 0);
+    -- gig_eth_tx_fifo_wren  <= NOT control_fifo_empty;
+    -- control_fifo_rdreq    <= NOT gig_eth_tx_fifo_full;
   END GENERATE gig_eth_cores;
   ---------------------------------------------> gig_eth
   ---------------------------------------------< SDRAM

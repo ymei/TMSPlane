@@ -1,6 +1,7 @@
 PROJECT_NAME           = "TMSPlane"
 PROJECT_BRIEF          = "Topmetal-S charge plane control and readout"
 OUTPUT_DIRECTORY       = ./dox
+USE_MDFILE_AS_MAINPAGE = README.md
 FULL_PATH_NAMES        = NO
 JAVADOC_AUTOBRIEF      = YES
 QT_AUTOBRIEF           = YES

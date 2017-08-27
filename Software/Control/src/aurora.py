@@ -19,12 +19,17 @@ if __name__ == "__main__":
 #
     cmd = Cmd()
 #
-    s.sendall(cmd.send_pulse(1<<1));
+    #s.sendall(cmd.send_pulse(1<<1));
     time.sleep(0.1)
 
     cmdStr  = cmd.write_register(29, 8-1)
     cmdStr += cmd.write_register(30, 0x5555)
     cmdStr += cmd.send_pulse(1<<8)
+    n = len(cmdStr)
     s.sendall(cmdStr)
+    print("n = {:d}".format(n))
+    print(":".join("{:02x}".format(ord(c)) for c in cmdStr))
+    ret = s.recv(n)
+    print(":".join("{:02x}".format(ord(c)) for c in ret))
 #
     s.close()

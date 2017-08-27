@@ -173,6 +173,7 @@ set files [list \
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_gt_common_wrapper.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_support.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b.v"]"\
+ "[file normalize "$origin_dir/../src/aurora64b66b/KC705/fifo_over_ufc.v"]"\
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -396,6 +397,8 @@ set file "$origin_dir/../src/top_TMS1mmX19_KC705.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property "file_type" "VHDL" $file_obj
+set_property "used_in" "synthesis" $file_obj
+set_property "used_in_simulation" "0" $file_obj
 
 set file "$origin_dir/../src/pulse2pulse.vhd"
 set file [file normalize $file]
@@ -461,6 +464,7 @@ set file "$origin_dir/../src/utility_pkg.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property "file_type" "VHDL" $file_obj
+# set_property "library" "work" $file_obj
 
 set file "$origin_dir/../src/i2c/i2c_master_core.vhd"
 set file [file normalize $file]

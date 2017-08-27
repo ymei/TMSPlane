@@ -62,7 +62,7 @@
  ///////////////////////////////////////////////////////////////////////////////
  `timescale 1 ns / 10 ps
 
-   (* core_generation_info = "aurora_64b66b_0,aurora_64b66b_v11_1_3,{c_aurora_lanes=1,c_column_used=left,c_gt_clock_1=GTXQ2,c_gt_clock_2=None,c_gt_loc_1=X,c_gt_loc_10=X,c_gt_loc_11=X,c_gt_loc_12=X,c_gt_loc_13=X,c_gt_loc_14=X,c_gt_loc_15=X,c_gt_loc_16=X,c_gt_loc_17=X,c_gt_loc_18=X,c_gt_loc_19=X,c_gt_loc_2=X,c_gt_loc_20=X,c_gt_loc_21=X,c_gt_loc_22=X,c_gt_loc_23=X,c_gt_loc_24=X,c_gt_loc_25=X,c_gt_loc_26=X,c_gt_loc_27=X,c_gt_loc_28=X,c_gt_loc_29=X,c_gt_loc_3=X,c_gt_loc_30=X,c_gt_loc_31=X,c_gt_loc_32=X,c_gt_loc_33=X,c_gt_loc_34=X,c_gt_loc_35=X,c_gt_loc_36=X,c_gt_loc_37=X,c_gt_loc_38=X,c_gt_loc_39=X,c_gt_loc_4=X,c_gt_loc_40=X,c_gt_loc_41=X,c_gt_loc_42=X,c_gt_loc_43=X,c_gt_loc_44=X,c_gt_loc_45=X,c_gt_loc_46=X,c_gt_loc_47=X,c_gt_loc_48=X,c_gt_loc_5=X,c_gt_loc_6=X,c_gt_loc_7=X,c_gt_loc_8=X,c_gt_loc_9=1,c_lane_width=4,c_line_rate=10.0,c_gt_type=gtx,c_qpll=true,c_nfc=false,c_nfc_mode=IMM,c_refclk_frequency=125.0,c_simplex=false,c_simplex_mode=TX,c_stream=true,c_ufc=true,c_user_k=false,flow_mode=UFC,interface_mode=Streaming,dataflow_config=Duplex}" *)
+   (* core_generation_info = "aurora_64b66b_0,aurora_64b66b_v11_1_3,{c_aurora_lanes=1,c_column_used=left,c_gt_clock_1=GTXQ0,c_gt_clock_2=None,c_gt_loc_1=1,c_gt_loc_10=X,c_gt_loc_11=X,c_gt_loc_12=X,c_gt_loc_13=X,c_gt_loc_14=X,c_gt_loc_15=X,c_gt_loc_16=X,c_gt_loc_17=X,c_gt_loc_18=X,c_gt_loc_19=X,c_gt_loc_2=X,c_gt_loc_20=X,c_gt_loc_21=X,c_gt_loc_22=X,c_gt_loc_23=X,c_gt_loc_24=X,c_gt_loc_25=X,c_gt_loc_26=X,c_gt_loc_27=X,c_gt_loc_28=X,c_gt_loc_29=X,c_gt_loc_3=X,c_gt_loc_30=X,c_gt_loc_31=X,c_gt_loc_32=X,c_gt_loc_33=X,c_gt_loc_34=X,c_gt_loc_35=X,c_gt_loc_36=X,c_gt_loc_37=X,c_gt_loc_38=X,c_gt_loc_39=X,c_gt_loc_4=X,c_gt_loc_40=X,c_gt_loc_41=X,c_gt_loc_42=X,c_gt_loc_43=X,c_gt_loc_44=X,c_gt_loc_45=X,c_gt_loc_46=X,c_gt_loc_47=X,c_gt_loc_48=X,c_gt_loc_5=X,c_gt_loc_6=X,c_gt_loc_7=X,c_gt_loc_8=X,c_gt_loc_9=X,c_lane_width=4,c_line_rate=10.0,c_gt_type=gtx,c_qpll=true,c_nfc=false,c_nfc_mode=IMM,c_refclk_frequency=125.0,c_simplex=false,c_simplex_mode=TX,c_stream=true,c_ufc=true,c_user_k=false,flow_mode=UFC,interface_mode=Streaming,dataflow_config=Duplex}" *)
 (* DowngradeIPIdentifiedWarnings="yes" *)
  module aurora_64b66b_0_support
   (
@@ -166,7 +166,7 @@
      // clock
        (* KEEP = "TRUE" *) wire               user_clk_i;
        (* KEEP = "TRUE" *) wire               sync_clk_i;
-       (* KEEP = "TRUE" *) wire               GTXQ2_left_i;
+       (* KEEP = "TRUE" *) wire               GTXQ0_left_i;
        (* KEEP = "TRUE" *) wire               INIT_CLK_i  /* synthesis syn_keep = 1 */;
        wire               drp_clk_i;
        wire    [8:0] drpaddr_in_i;
@@ -189,8 +189,8 @@
        wire               gt_reset_i_tmp;
 
 //---{
-    wire                     gt_qpllclk_quad3_i;
-    wire                     gt_qpllrefclk_quad3_i;
+    wire                     gt_qpllclk_quad1_i;
+    wire                     gt_qpllrefclk_quad1_i;
     wire                     gt_to_common_qpllreset_i;
     wire                     gt_qpllrefclklost_i;
     wire                     gt_qplllock_i;
@@ -227,8 +227,8 @@
 
 aurora_64b66b_0_gt_common_wrapper gt_common_support
 (
-    .gt_qpllclk_quad3_out    (gt_qpllclk_quad3_i      ),
-    .gt_qpllrefclk_quad3_out (gt_qpllrefclk_quad3_i   ),
+    .gt_qpllclk_quad1_out    (gt_qpllclk_quad1_i      ),
+    .gt_qpllrefclk_quad1_out (gt_qpllrefclk_quad1_i   ),
 
          .GT0_GTREFCLK0_COMMON_IN             (refclk1_in),
 
@@ -360,8 +360,8 @@ aurora_64b66b_0 aurora_64b66b_0_i
          .gt_pll_lock(gt_pll_lock),
          .drp_clk_in(drp_clk_in),
 //---{
-       .gt_qpllclk_quad3_in        (gt_qpllclk_quad3_i         ),
-       .gt_qpllrefclk_quad3_in     (gt_qpllrefclk_quad3_i      ),
+       .gt_qpllclk_quad1_in        (gt_qpllclk_quad1_i         ),
+       .gt_qpllrefclk_quad1_in     (gt_qpllrefclk_quad1_i      ),
 
        .gt_to_common_qpllreset_out  (gt_to_common_qpllreset_i    ),
        .gt_qplllock_in       (gt_qplllock_i        ),

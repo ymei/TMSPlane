@@ -59,12 +59,12 @@
  // Module aurora_64b66b_0_gt_common_wrapper
  `timescale 1ns / 1ps
 
-   (* core_generation_info = "aurora_64b66b_0,aurora_64b66b_v11_1_3,{c_aurora_lanes=1,c_column_used=left,c_gt_clock_1=GTXQ2,c_gt_clock_2=None,c_gt_loc_1=X,c_gt_loc_10=X,c_gt_loc_11=X,c_gt_loc_12=X,c_gt_loc_13=X,c_gt_loc_14=X,c_gt_loc_15=X,c_gt_loc_16=X,c_gt_loc_17=X,c_gt_loc_18=X,c_gt_loc_19=X,c_gt_loc_2=X,c_gt_loc_20=X,c_gt_loc_21=X,c_gt_loc_22=X,c_gt_loc_23=X,c_gt_loc_24=X,c_gt_loc_25=X,c_gt_loc_26=X,c_gt_loc_27=X,c_gt_loc_28=X,c_gt_loc_29=X,c_gt_loc_3=X,c_gt_loc_30=X,c_gt_loc_31=X,c_gt_loc_32=X,c_gt_loc_33=X,c_gt_loc_34=X,c_gt_loc_35=X,c_gt_loc_36=X,c_gt_loc_37=X,c_gt_loc_38=X,c_gt_loc_39=X,c_gt_loc_4=X,c_gt_loc_40=X,c_gt_loc_41=X,c_gt_loc_42=X,c_gt_loc_43=X,c_gt_loc_44=X,c_gt_loc_45=X,c_gt_loc_46=X,c_gt_loc_47=X,c_gt_loc_48=X,c_gt_loc_5=X,c_gt_loc_6=X,c_gt_loc_7=X,c_gt_loc_8=X,c_gt_loc_9=1,c_lane_width=4,c_line_rate=10.0,c_gt_type=gtx,c_qpll=true,c_nfc=false,c_nfc_mode=IMM,c_refclk_frequency=125.0,c_simplex=false,c_simplex_mode=TX,c_stream=true,c_ufc=true,c_user_k=false,flow_mode=UFC,interface_mode=Streaming,dataflow_config=Duplex}" *) 
+   (* core_generation_info = "aurora_64b66b_0,aurora_64b66b_v11_1_3,{c_aurora_lanes=1,c_column_used=left,c_gt_clock_1=GTXQ0,c_gt_clock_2=None,c_gt_loc_1=1,c_gt_loc_10=X,c_gt_loc_11=X,c_gt_loc_12=X,c_gt_loc_13=X,c_gt_loc_14=X,c_gt_loc_15=X,c_gt_loc_16=X,c_gt_loc_17=X,c_gt_loc_18=X,c_gt_loc_19=X,c_gt_loc_2=X,c_gt_loc_20=X,c_gt_loc_21=X,c_gt_loc_22=X,c_gt_loc_23=X,c_gt_loc_24=X,c_gt_loc_25=X,c_gt_loc_26=X,c_gt_loc_27=X,c_gt_loc_28=X,c_gt_loc_29=X,c_gt_loc_3=X,c_gt_loc_30=X,c_gt_loc_31=X,c_gt_loc_32=X,c_gt_loc_33=X,c_gt_loc_34=X,c_gt_loc_35=X,c_gt_loc_36=X,c_gt_loc_37=X,c_gt_loc_38=X,c_gt_loc_39=X,c_gt_loc_4=X,c_gt_loc_40=X,c_gt_loc_41=X,c_gt_loc_42=X,c_gt_loc_43=X,c_gt_loc_44=X,c_gt_loc_45=X,c_gt_loc_46=X,c_gt_loc_47=X,c_gt_loc_48=X,c_gt_loc_5=X,c_gt_loc_6=X,c_gt_loc_7=X,c_gt_loc_8=X,c_gt_loc_9=X,c_lane_width=4,c_line_rate=10.0,c_gt_type=gtx,c_qpll=true,c_nfc=false,c_nfc_mode=IMM,c_refclk_frequency=125.0,c_simplex=false,c_simplex_mode=TX,c_stream=true,c_ufc=true,c_user_k=false,flow_mode=UFC,interface_mode=Streaming,dataflow_config=Duplex}" *)
 (* DowngradeIPIdentifiedWarnings="yes" *) 
 module aurora_64b66b_0_gt_common_wrapper
 (
-    output                     gt_qpllclk_quad3_out,
-    output                     gt_qpllrefclk_quad3_out,
+    output                     gt_qpllclk_quad1_out,
+    output                     gt_qpllrefclk_quad1_out,
 
     input           GT0_GTREFCLK0_COMMON_IN,
     //----------------------- Common Block - QPLL Ports ------------------------
@@ -158,8 +158,8 @@ parameter   WRAPPER_SIM_GTRESET_SPEEDUP    = "TRUE";    // Set to "TRUE" to spee
         .QPLLLOCK                                   (GT0_QPLLLOCK_OUT),
         .QPLLLOCKDETCLK                             (GT0_QPLLLOCKDETCLK_IN),
         .QPLLLOCKEN                                 (tied_to_vcc_i),
-        .QPLLOUTCLK                                 (gt_qpllclk_quad3_out),
-        .QPLLOUTREFCLK                              (gt_qpllrefclk_quad3_out),
+        .QPLLOUTCLK                                 (gt_qpllclk_quad1_out),
+        .QPLLOUTREFCLK                              (gt_qpllrefclk_quad1_out),
         .QPLLOUTRESET                               (tied_to_ground_i),
         .QPLLPD                                     (tied_to_ground_i),
         .QPLLREFCLKLOST                             (GT0_QPLLREFCLKLOST_OUT),

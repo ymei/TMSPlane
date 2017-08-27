@@ -140,7 +140,7 @@ PACKAGE utility IS
   END COMPONENT;
 
   IMPURE FUNCTION version_from_file(filename : IN string) RETURN std_logic_vector;
-  FUNCTION reverse_vector (a : IN std_logic_vector) RETURN std_logic_vector;
+  FUNCTION reverse_vector(a : IN std_logic_vector) RETURN std_logic_vector;
 
 END PACKAGE utility;
 
@@ -177,7 +177,7 @@ PACKAGE BODY utility IS
     RETURN smudge & std_logic_vector(to_unsigned(x, 14));
   END FUNCTION;
 
-  FUNCTION reverse_vector (a : IN std_logic_vector)
+  FUNCTION reverse_vector(a : IN std_logic_vector)
     RETURN std_logic_vector IS
     VARIABLE result : std_logic_vector(a'range);
     ALIAS aa        : std_logic_vector(a'reverse_range) IS a;

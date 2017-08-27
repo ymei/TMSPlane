@@ -20,6 +20,8 @@
     exit
 # project.tcl is generated via File->Write Project Tcl with everything unchecked.
 ```
+* VHDL files need ```set_property "file_type" "VHDL" $file_obj``` while Verilog files don't.
+* ```set_property BITSTREAM.General.UnconstrainedPins {Allow} [current_design]``` in .xdc can be useful.
 
 ## GTX / aurora 64b/66b
 ### KC705
@@ -40,6 +42,7 @@
 * No framing, no CRC
 * DRP Mode Native
 * Uncheck Lab tools and additional ports
+* DO NOT touch anything in GT selections.  Will select in .xdc.
 * Shared logic in example design
 * Copy ```aurora_64b66b_0_ex/aurora_64b66b_0_ex.srcs/shared_logic/*``` to ```src/aurora64b66b/KC705/```
 
