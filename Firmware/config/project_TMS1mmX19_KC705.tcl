@@ -173,7 +173,7 @@ set files [list \
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_gt_common_wrapper.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_support.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b.v"]"\
- "[file normalize "$origin_dir/../src/aurora64b66b/KC705/fifo_over_ufc.v"]"\
+ "[file normalize "$origin_dir/../src/aurora64b66b/fifo_over_ufc.v"]"\
 ]
 add_files -norecurse -fileset $obj $files
 

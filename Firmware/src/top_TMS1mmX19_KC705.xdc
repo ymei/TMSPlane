@@ -184,7 +184,7 @@ set_property PACKAGE_PIN K5 [get_ports SMA_MGT_RX_N]
 set_property LOC GTXE2_CHANNEL_X0Y8 [get_cells aurora_64b66b_inst/aurora_64b66b_0_support_inst/aurora_64b66b_0_i/inst/aurora_64b66b_0_wrapper_i/aurora_64b66b_0_multi_gt_i/aurora_64b66b_0_gtx_inst/gtxe2_i]
 set_property LOC GTXE2_COMMON_X0Y2 [get_cells aurora_64b66b_inst/aurora_64b66b_0_support_inst/gt_common_support/gtxe2_common_i]
 
-#>--SMA MGT -->
+#>-- SMA MGT -->
 
 #<-- ten gig eth interface --<
 

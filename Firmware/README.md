@@ -69,3 +69,6 @@ write_cfgmem -format MCS -size 128 -interface BPIx16 -loadbit "up 0x0 top/top.ru
 Then in Hardware Manager, choose Micron density 1024Mb 28f00ap30t-bpi-x16
 Pull-none, RS Pins 25:24
 ```
+### TE0741
+* 32 MByte QSPI Flash memory, Cypress S25FL256SAGBHI20, 3.3V.
+* Do not erase nonvolatile QE (Quad Enable) bit on the TE0741 serial flash! FPGA boot is supported only in 4 bit mode with QE enabled.
