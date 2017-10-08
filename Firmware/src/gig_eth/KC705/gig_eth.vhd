@@ -46,7 +46,7 @@
 -- regulations governing limitations on product liability.
 --
 -- THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
--- PART OF THIS FILE AT ALL TIMES. 
+-- PART OF THIS FILE AT ALL TIMES.
 -- -----------------------------------------------------------------------------
 -- Description:  This is the VHDL example design for the Tri-Mode
 --               Ethernet MAC core. It is intended that this example design
@@ -178,12 +178,21 @@ entity gig_eth is
       TCP_USE_FIFO                  : IN  std_logic;
       TX_FIFO_WRCLK                 : IN  std_logic;
       TX_FIFO_Q                     : IN  std_logic_vector(31 downto 0);
-      TX_FIFO_WREN                  : IN  std_logic;     
+      TX_FIFO_WREN                  : IN  std_logic;
       TX_FIFO_FULL                  : OUT std_logic;
       RX_FIFO_RDCLK                 : IN  std_logic;
       RX_FIFO_Q                     : OUT std_logic_vector(31 downto 0);
-      RX_FIFO_RDEN                  : IN  std_logic;     
-      RX_FIFO_EMPTY                 : OUT std_logic
+      RX_FIFO_RDEN                  : IN  std_logic;
+      RX_FIFO_EMPTY                 : OUT std_logic;
+      --
+      TX_FIFO1_WRCLK                : IN  std_logic;
+      TX_FIFO1_Q                    : IN  std_logic_vector(31 downto 0);
+      TX_FIFO1_WREN                 : IN  std_logic;
+      TX_FIFO1_FULL                 : OUT std_logic;
+      RX_FIFO1_RDCLK                : IN  std_logic;
+      RX_FIFO1_Q                    : OUT std_logic_vector(31 downto 0);
+      RX_FIFO1_RDEN                 : IN  std_logic;
+      RX_FIFO1_EMPTY                : OUT std_logic
     );
 end gig_eth;
 
@@ -197,7 +206,7 @@ architecture wrapper of gig_eth is
       CLK_FREQUENCY   : integer               := 125;
       -- CLK frequency in MHz. Needed to compute actual delays.
       TX_IDLE_TIMEOUT : integer RANGE 0 TO 50 := 50;
-      -- inactive input timeout, expressed in 4us units. -- 50*4us = 200us 
+      -- inactive input timeout, expressed in 4us units. -- 50*4us = 200us
       -- Controls the transmit stream segmentation: data in the elastic buffer will be transmitted if
       -- no input is received within TX_IDLE_TIMEOUT, without waiting for the transmit frame to be filled with MSS data bytes.
       SIMULATION      : std_logic             := '0'
@@ -239,13 +248,13 @@ architecture wrapper of gig_eth is
       MAC_TX_SOF        : out std_logic;
       -- start of frame: '1' when sending the first byte.
       MAC_TX_EOF        : OUT std_logic;
-      -- '1' when sending the last byte in a packet to be transmitted. 
+      -- '1' when sending the last byte in a packet to be transmitted.
       -- Aligned with MAC_TX_DATA_VALID
       MAC_TX_CTS        : IN  std_logic;
-      -- MAC-generated Clear To Send flow control signal, indicating room in the 
-      -- MAC tx elastic buffer for a complete maximum size frame 1518B. 
+      -- MAC-generated Clear To Send flow control signal, indicating room in the
+      -- MAC tx elastic buffer for a complete maximum size frame 1518B.
       -- The user should check that this signal is high before deciding to send
-      -- sending the next frame. 
+      -- sending the next frame.
       -- Note: MAC_TX_CTS may go low while the frame is transfered in. Ignore it as space is guaranteed
       -- at the start of frame.
 
@@ -258,10 +267,10 @@ architecture wrapper of gig_eth is
       MAC_RX_DATA_VALID : IN std_logic;
       -- data valid
       MAC_RX_SOF        : IN std_logic;
-      -- '1' when sending the first byte in a received packet. 
+      -- '1' when sending the first byte in a received packet.
       -- Aligned with MAC_RX_DATA_VALID
       MAC_RX_EOF        : IN std_logic;
-      -- '1' when sending the last byte in a received packet. 
+      -- '1' when sending the last byte in a received packet.
       -- Aligned with MAC_RX_DATA_VALID
 
       --//-- Application <- UDP rx
@@ -291,12 +300,12 @@ architecture wrapper of gig_eth is
       --//-- Application <- TCP rx
       -- NTCPSTREAMS can operate independently. Only one stream active at any given time.
       -- Data is pushed out. Limited flow-control here. Receipient must be able to accept data
-      -- at any time (in other words, it is the receipient's responsibility to have elastic 
+      -- at any time (in other words, it is the receipient's responsibility to have elastic
       -- buffer if needed).
       TCP_RX_DATA       : OUT SLV8xNTCPSTREAMStype;
       TCP_RX_DATA_VALID : OUT std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
-      TCP_RX_RTS        : OUT std_logic;
-      TCP_RX_CTS        : IN  std_logic;
+      TCP_RX_RTS        : OUT std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
+      TCP_RX_CTS        : IN  std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
       -- Optional Clear-To-Send. pull to '1' when output flow control is unused.
       -- WARNING: pulling CTS down will stop the flow for ALL streams.
 
@@ -305,7 +314,7 @@ architecture wrapper of gig_eth is
       TCP_TX_DATA       : IN  SLV8xNTCPSTREAMStype;
       TCP_TX_DATA_VALID : IN  std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
       TCP_TX_CTS        : OUT std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
-      -- Clear To Send = transmit flow control. 
+      -- Clear To Send = transmit flow control.
       -- App is responsible for checking the CTS signal before sending APP_DATA
 
       --//-- TEST POINTS, COMSCOPE TRACES
@@ -638,28 +647,27 @@ architecture wrapper of gig_eth is
   SIGNAL tcp_gateway_ip_addr      : std_logic_vector(31 DOWNTO 0);
   --
   SIGNAL mac_rx_sof               : std_logic;
-  SIGNAL tcp_rx_data              : std_logic_vector(7 DOWNTO 0);
-  SIGNAL tcp_rx_data_valid        : std_logic;
-  SIGNAL tcp_rx_rts               : std_logic;
-  SIGNAL tcp_rx_cts               : std_logic;
-  SIGNAL tcp_tx_data              : std_logic_vector(7 DOWNTO 0);
-  SIGNAL tcp_tx_data_valid        : std_logic;
-  SIGNAL tcp_tx_cts               : std_logic;
   --
   SIGNAL tcp_rx_data_slv8x        : SLV8xNTCPSTREAMStype;
   SIGNAL tcp_tx_data_slv8x        : SLV8xNTCPSTREAMStype;
-  SIGNAL tcp_rx_data_valid_vector : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
-  SIGNAL tcp_tx_cts_vector        : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
+  SIGNAL tcp_rx_data_valid_v      : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
+  SIGNAL tcp_tx_data_valid_v      : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
+  SIGNAL tcp_rx_cts_v             : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
+  SIGNAL tcp_tx_cts_v             : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
+  SIGNAL tcp_rx_rts_v             : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
+  SIGNAL connection_reset_v       : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
   --
   SIGNAL rx_fifo_full             : std_logic;
   SIGNAL rx_fifo_fullm3           : std_logic;
   SIGNAL tx_fifo_dout             : std_logic_vector(7 DOWNTO 0);
   SIGNAL tx_fifo_rden             : std_logic;
   SIGNAL tx_fifo_empty            : std_logic;
-  --
-  SIGNAL connection_reset_v       : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
-  SIGNAL tcp_tx_data_valid_v      : std_logic_vector((NTCPSTREAMS-1) DOWNTO 0);
-  
+  SIGNAL rx_fifo1_full            : std_logic;
+  SIGNAL rx_fifo1_fullm3          : std_logic;
+  SIGNAL tx_fifo1_dout            : std_logic_vector(7 DOWNTO 0);
+  SIGNAL tx_fifo1_rden            : std_logic;
+  SIGNAL tx_fifo1_empty           : std_logic;
+
   ------------------------------------------------------------------------------
   -- Begin architecture
   ------------------------------------------------------------------------------
@@ -863,7 +871,7 @@ begin
        tcp_gateway_ip_addr <= GATEWAY_IP_ADDR;
      END IF;
    END PROCESS;
- 
+
    -- generate a 1-clk wide pulse SOF (start of frame)
    mac_rx_sof_gen : PROCESS (gtx_clk_bufg, glbl_rst_int) IS
      VARIABLE state       : std_logic;
@@ -889,21 +897,16 @@ begin
      END IF;
    END PROCESS;
 
-   rx_axis_fifo_tready  <= '1';
-   tcp_rx_data          <= tcp_rx_data_slv8x(0);
-   tcp_tx_data_slv8x(0) <= tcp_tx_data;
-   tcp_tx_cts           <= tcp_tx_cts_vector(0);
-   tcp_rx_data_valid    <= tcp_rx_data_valid_vector(0);
-   connection_reset_v   <= (OTHERS => tcp_connection_reset);
-   tcp_tx_data_valid_v  <= (OTHERS => tcp_tx_data_valid);
+   rx_axis_fifo_tready <= '1';
+   connection_reset_v  <= (OTHERS => TCP_CONNECTION_RESET);
    tcp_server_inst : COM5402
      GENERIC MAP (
        CLK_FREQUENCY   => 125,
        -- CLK frequency in MHz. Needed to compute actual delays.
        TX_IDLE_TIMEOUT => 50,
-       -- inactive input timeout, expressed in 4us units. -- 50*4us = 200us 
+       -- inactive input timeout, expressed in 4us units. -- 50*4us = 200us
        -- Controls the transmit stream segmentation: data in the elastic buffer will be transmitted if
-       -- no input is received within TX_IDLE_TIMEOUT, without waiting for the transmit frame to be filled with MSS data bytes.       
+       -- no input is received within TX_IDLE_TIMEOUT, without waiting for the transmit frame to be filled with MSS data bytes.
        SIMULATION      => '0'
       -- 1 during simulation with Wireshark .cap file, '0' otherwise
       -- Wireshark many not be able to collect offloaded checksum computations.
@@ -941,15 +944,15 @@ begin
        MAC_TX_DATA_VALID => tx_axis_fifo_tvalid,
        -- data valid
        MAC_TX_SOF        => OPEN,
-       -- start of frame: '1' when sending the first byte.       
+       -- start of frame: '1' when sending the first byte.
        MAC_TX_EOF        => tx_axis_fifo_tlast,
-       -- '1' when sending the last byte in a packet to be transmitted. 
+       -- '1' when sending the last byte in a packet to be transmitted.
        -- Aligned with MAC_TX_DATA_VALID
        MAC_TX_CTS        => tx_axis_fifo_tready,
-       -- MAC-generated Clear To Send flow control signal, indicating room in the 
-       -- MAC tx elastic buffer for a complete maximum size frame 1518B. 
+       -- MAC-generated Clear To Send flow control signal, indicating room in the
+       -- MAC tx elastic buffer for a complete maximum size frame 1518B.
        -- The user should check that this signal is high before deciding to send
-       -- sending the next frame. 
+       -- sending the next frame.
        -- Note: MAC_TX_CTS may go low while the frame is transfered in. Ignore it as space is guaranteed
        -- at the start of frame.
 
@@ -962,10 +965,10 @@ begin
        MAC_RX_DATA_VALID => rx_axis_fifo_tvalid,
        -- data valid
        MAC_RX_SOF        => mac_rx_sof,
-       -- '1' when sending the first byte in a received packet. 
+       -- '1' when sending the first byte in a received packet.
        -- Aligned with MAC_RX_DATA_VALID
        MAC_RX_EOF        => rx_axis_fifo_tlast,
-       -- '1' when sending the last byte in a received packet. 
+       -- '1' when sending the last byte in a received packet.
        -- Aligned with MAC_RX_DATA_VALID
 
        --//-- Application <- UDP rx
@@ -995,12 +998,12 @@ begin
        --//-- Application <- TCP rx
        -- NTCPSTREAMS can operate independently. Only one stream active at any given time.
        -- Data is pushed out. Limited flow-control here. Receipient must be able to accept data
-       -- at any time (in other words, it is the receipient's responsibility to have elastic 
+       -- at any time (in other words, it is the receipient's responsibility to have elastic
        -- buffer if needed).
        TCP_RX_DATA       => tcp_rx_data_slv8x,
-       TCP_RX_DATA_VALID => tcp_rx_data_valid_vector,
-       TCP_RX_RTS        => tcp_rx_rts,
-       TCP_RX_CTS        => tcp_rx_cts,
+       TCP_RX_DATA_VALID => tcp_rx_data_valid_v,
+       TCP_RX_RTS        => tcp_rx_rts_v,
+       TCP_RX_CTS        => tcp_rx_cts_v,
        -- Optional Clear-To-Send. pull to '1' when output flow control is unused.
        -- WARNING: pulling CTS down will stop the flow for ALL streams.
 
@@ -1008,8 +1011,8 @@ begin
        -- NTCPSTREAMS can operate independently and concurrently. No scheduling arbitration needed here.
        TCP_TX_DATA       => tcp_tx_data_slv8x,
        TCP_TX_DATA_VALID => tcp_tx_data_valid_v,
-       TCP_TX_CTS        => tcp_tx_cts_vector,
-       -- Clear To Send = transmit flow control. 
+       TCP_TX_CTS        => tcp_tx_cts_v,
+       -- Clear To Send = transmit flow control.
        -- App is responsible for checking the CTS signal before sending APP_DATA
 
        --//-- TEST POINTS, COMSCOPE TRACES
@@ -1030,18 +1033,18 @@ begin
        rst       => glbl_rst_int,
        wr_clk    => gtx_clk_bufg,
        rd_clk    => RX_FIFO_RDCLK,
-       din       => tcp_rx_data,
-       wr_en     => tcp_rx_data_valid,
+       din       => tcp_rx_data_slv8x(0),
+       wr_en     => tcp_rx_data_valid_v(0),
        rd_en     => RX_FIFO_RDEN,
        dout      => RX_FIFO_Q,
        full      => rx_fifo_full,
        prog_full => rx_fifo_fullm3,     -- asserted at (full-3) writes
        empty     => RX_FIFO_EMPTY
      );
-   tcp_rx_cts <= (NOT rx_fifo_fullm3) WHEN TCP_USE_FIFO = '1' ELSE
-                 RX_TREADY;
-   RX_TDATA   <= tcp_rx_data;
-   RX_TVALID  <= tcp_rx_data_valid;
+   tcp_rx_cts_v(0) <= (NOT rx_fifo_fullm3) WHEN TCP_USE_FIFO = '1' ELSE
+                      RX_TREADY;
+   RX_TDATA  <= tcp_rx_data_slv8x(0);
+   RX_TVALID <= tcp_rx_data_valid_v(0);
 
    tx_fifo_inst : fifo32to8
      PORT MAP (
@@ -1055,12 +1058,43 @@ begin
        full   => TX_FIFO_FULL,
        empty  => tx_fifo_empty
      );
-   tcp_tx_data_valid <= ((NOT tx_fifo_empty) AND tcp_tx_cts) WHEN TCP_USE_FIFO = '1' ELSE
-                        TX_TVALID;
-   tx_fifo_rden      <= tcp_tx_data_valid;
+   tcp_tx_data_valid_v(0) <= ((NOT tx_fifo_empty) AND tcp_tx_cts_v(0)) WHEN TCP_USE_FIFO = '1' ELSE
+                             TX_TVALID;
+   tx_fifo_rden         <= tcp_tx_data_valid_v(0);
+   tcp_tx_data_slv8x(0) <= tx_fifo_dout WHEN TCP_USE_FIFO = '1' ELSE
+                           TX_TDATA;
+   TX_TREADY <= tcp_tx_cts_v(0);
 
-   tcp_tx_data <= tx_fifo_dout WHEN TCP_USE_FIFO = '1' ELSE
-                  TX_TDATA;
-   TX_TREADY   <= tcp_tx_cts;
+   -- Stream 1
+   rx_fifo1_inst : fifo8to32
+     PORT MAP (
+       rst       => glbl_rst_int,
+       wr_clk    => gtx_clk_bufg,
+       rd_clk    => RX_FIFO1_RDCLK,
+       din       => tcp_rx_data_slv8x(1),
+       wr_en     => tcp_rx_data_valid_v(1),
+       rd_en     => RX_FIFO1_RDEN,
+       dout      => RX_FIFO1_Q,
+       full      => rx_fifo1_full,
+       prog_full => rx_fifo1_fullm3,     -- asserted at (full-3) writes
+       empty     => RX_FIFO1_EMPTY
+     );
+   tcp_rx_cts_v(1) <= NOT rx_fifo1_fullm3;
+
+   tx_fifo1_inst : fifo32to8
+     PORT MAP (
+       rst    => glbl_rst_int,
+       wr_clk => TX_FIFO1_WRCLK,
+       rd_clk => gtx_clk_bufg,
+       din    => TX_FIFO1_Q,
+       wr_en  => TX_FIFO1_WREN,
+       rd_en  => tx_fifo1_rden,
+       dout   => tx_fifo1_dout,
+       full   => TX_FIFO1_FULL,
+       empty  => tx_fifo1_empty
+     );
+   tcp_tx_data_valid_v(1) <= ((NOT tx_fifo1_empty) AND tcp_tx_cts_v(1));
+   tx_fifo1_rden          <= tcp_tx_data_valid_v(1);
+   tcp_tx_data_slv8x(1)   <= tx_fifo1_dout;
 
 end wrapper;

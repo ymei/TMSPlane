@@ -112,7 +112,7 @@ set files [list \
  "[file normalize "$origin_dir/../src/gig_eth/KC705/common/tri_mode_ethernet_mac_0_reset_sync.vhd"]"\
  "[file normalize "$origin_dir/../src/ten_gig_eth/KC705/fifo/xgmac_fifo_pack.vhd"]"\
  "[file normalize "$origin_dir/../src/ten_gig_eth/KC705/fifo/ten_gig_eth_mac_0_fifo_ram.vhd"]"\
- "[file normalize "$origin_dir/../src/gig_eth/tcp_server/com5402pkg.vhd"]"\
+ "[file normalize "$origin_dir/../src/gig_eth/KC705/com5402localpkg.vhd"]"\
  "[file normalize "$origin_dir/../src/gig_eth/tcp_server/bram_dp.vhd"]"\
  "[file normalize "$origin_dir/../src/gig_eth/KC705/support/tri_mode_ethernet_mac_0_support_resets.vhd"]"\
  "[file normalize "$origin_dir/../src/gig_eth/KC705/support/tri_mode_ethernet_mac_0_support_clocking.vhd"]"\
@@ -137,7 +137,7 @@ set files [list \
  "[file normalize "$origin_dir/../src/tickgen.vhd"]"\
  "[file normalize "$origin_dir/../src/ten_gig_eth/KC705/fifo/ten_gig_eth_mac_0_xgmac_fifo.vhd"]"\
  "[file normalize "$origin_dir/../src/global_resetter.vhd"]"\
- "[file normalize "$origin_dir/../src/gig_eth/tcp_server/com5402.vhd"]"\
+ "[file normalize "$origin_dir/../src/gig_eth/KC705/com5402local.vhd"]"\
  "[file normalize "$origin_dir/../src/gig_eth/KC705/gig_eth_mac_resets.vhd"]"\
  "[file normalize "$origin_dir/../src/gig_eth/KC705/gig_eth_mac_fifo_block.vhd"]"\
  "[file normalize "$origin_dir/../src/gig_eth/KC705/axi_lite_sm/tri_mode_ethernet_mac_0_axi_lite_sm.vhd"]"\
@@ -203,7 +203,7 @@ set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property "file_type" "VHDL" $file_obj
 
-set file "$origin_dir/../src/gig_eth/tcp_server/com5402pkg.vhd"
+set file "$origin_dir/../src/gig_eth/KC705/com5402localpkg.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property "file_type" "VHDL" $file_obj
@@ -328,7 +328,7 @@ set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property "file_type" "VHDL" $file_obj
 
-set file "$origin_dir/../src/gig_eth/tcp_server/com5402.vhd"
+set file "$origin_dir/../src/gig_eth/KC705/com5402local.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property "file_type" "VHDL" $file_obj

@@ -326,7 +326,16 @@ ARCHITECTURE Behavioral OF top IS
       RX_FIFO_RDCLK        : IN    std_logic;
       RX_FIFO_Q            : OUT   std_logic_vector(31 DOWNTO 0);
       RX_FIFO_RDEN         : IN    std_logic;
-      RX_FIFO_EMPTY        : OUT   std_logic
+      RX_FIFO_EMPTY        : OUT   std_logic;
+      --
+      TX_FIFO1_WRCLK       : IN  std_logic;
+      TX_FIFO1_Q           : IN  std_logic_vector(31 downto 0);
+      TX_FIFO1_WREN        : IN  std_logic;
+      TX_FIFO1_FULL        : OUT std_logic;
+      RX_FIFO1_RDCLK       : IN  std_logic;
+      RX_FIFO1_Q           : OUT std_logic_vector(31 downto 0);
+      RX_FIFO1_RDEN        : IN  std_logic;
+      RX_FIFO1_EMPTY       : OUT std_logic
     );
   END COMPONENT;
   ---------------------------------------------> gig_eth
@@ -613,6 +622,14 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL gig_eth_rx_fifo_q                 : std_logic_vector(31 DOWNTO 0);
   SIGNAL gig_eth_rx_fifo_rden              : std_logic;
   SIGNAL gig_eth_rx_fifo_empty             : std_logic;
+  SIGNAL gig_eth_tx_fifo1_wrclk            : std_logic;
+  SIGNAL gig_eth_tx_fifo1_q                : std_logic_vector(31 DOWNTO 0);
+  SIGNAL gig_eth_tx_fifo1_wren             : std_logic;
+  SIGNAL gig_eth_tx_fifo1_full             : std_logic;
+  SIGNAL gig_eth_rx_fifo1_rdclk            : std_logic;
+  SIGNAL gig_eth_rx_fifo1_q                : std_logic_vector(31 DOWNTO 0);
+  SIGNAL gig_eth_rx_fifo1_rden             : std_logic;
+  SIGNAL gig_eth_rx_fifo1_empty            : std_logic;
   ---------------------------------------------> gig_eth
   ---------------------------------------------< SDRAM
   SIGNAL sdram_app_addr                    : std_logic_vector(28-1 DOWNTO 0);
@@ -1087,17 +1104,16 @@ BEGIN
       AURORA_TX_TVALID => aurora_ufc_tx_tvalid,
       AURORA_RX_TDATA  => aurora_ufc_rx_tdata,
       AURORA_RX_TVALID => aurora_ufc_rx_tvalid,
-      FIFO_CLK         => gig_eth_tx_fifo_wrclk,
-      TX_FIFO_Q        => gig_eth_tx_fifo_q,
-      TX_FIFO_WREN     => gig_eth_tx_fifo_wren,
-      TX_FIFO_FULL     => gig_eth_tx_fifo_full,
-      RX_FIFO_Q        => gig_eth_rx_fifo_q,
-      RX_FIFO_RDEN     => gig_eth_rx_fifo_rden,
-      RX_FIFO_EMPTY    => gig_eth_rx_fifo_empty,
-      ERR              => OPEN -- LED8Bit(1)
+      FIFO_CLK         => gig_eth_tx_fifo1_wrclk,
+      TX_FIFO_Q        => gig_eth_tx_fifo1_q,
+      TX_FIFO_WREN     => gig_eth_tx_fifo1_wren,
+      TX_FIFO_FULL     => gig_eth_tx_fifo1_full,
+      RX_FIFO_Q        => gig_eth_rx_fifo1_q,
+      RX_FIFO_RDEN     => gig_eth_rx_fifo1_rden,
+      RX_FIFO_EMPTY    => gig_eth_rx_fifo1_empty,
+      ERR              => LED8Bit(2)
     );
-  gig_eth_tcp_use_fifo  <= '1';
-  gig_eth_rx_fifo_rdclk <= gig_eth_tx_fifo_wrclk;
+  gig_eth_rx_fifo1_rdclk <= gig_eth_tx_fifo1_wrclk;
 
   -- -- debug
   -- aurora_ufc_tx_req <= pulse_reg(8);
@@ -1175,7 +1191,16 @@ BEGIN
         RX_FIFO_RDCLK        => gig_eth_rx_fifo_rdclk,
         RX_FIFO_Q            => gig_eth_rx_fifo_q,
         RX_FIFO_RDEN         => gig_eth_rx_fifo_rden,
-        RX_FIFO_EMPTY        => gig_eth_rx_fifo_empty
+        RX_FIFO_EMPTY        => gig_eth_rx_fifo_empty,
+        --
+        TX_FIFO1_WRCLK       => gig_eth_tx_fifo1_wrclk,
+        TX_FIFO1_Q           => gig_eth_tx_fifo1_q,
+        TX_FIFO1_WREN        => gig_eth_tx_fifo1_wren,
+        TX_FIFO1_FULL        => gig_eth_tx_fifo1_full,
+        RX_FIFO1_RDCLK       => gig_eth_rx_fifo1_rdclk,
+        RX_FIFO1_Q           => gig_eth_rx_fifo1_q,
+        RX_FIFO1_RDEN        => gig_eth_rx_fifo1_rden,
+        RX_FIFO1_EMPTY       => gig_eth_rx_fifo1_empty
       );
     dbg_ila_probe0(26 DOWNTO 19) <= gig_eth_rx_tdata;
     dbg_ila_probe0(27)           <= gig_eth_rx_tvalid;
@@ -1187,20 +1212,20 @@ BEGIN
     --gig_eth_rx_tready <= gig_eth_tx_tready;
 
     -- receive to cmd_fifo
-    -- gig_eth_tcp_use_fifo         <= '1';
-    -- gig_eth_rx_fifo_rdclk        <= control_clk;
-    -- cmd_fifo_q(31 DOWNTO 0)      <= gig_eth_rx_fifo_q;
-    -- dbg_ila_probe0(63 DOWNTO 32) <= gig_eth_rx_fifo_q;
-    -- cmd_fifo_empty               <= gig_eth_rx_fifo_empty;
-    -- gig_eth_rx_fifo_rden         <= cmd_fifo_rdreq;
+    gig_eth_tcp_use_fifo         <= '1';
+    gig_eth_rx_fifo_rdclk        <= control_clk;
+    cmd_fifo_q(31 DOWNTO 0)      <= gig_eth_rx_fifo_q;
+    dbg_ila_probe0(63 DOWNTO 32) <= gig_eth_rx_fifo_q;
+    cmd_fifo_empty               <= gig_eth_rx_fifo_empty;
+    gig_eth_rx_fifo_rden         <= cmd_fifo_rdreq;
 
     -- send control_fifo data through gig_eth_tx_fifo
-    -- gig_eth_tx_fifo_wrclk <= clk_125MHz;
+    gig_eth_tx_fifo_wrclk <= clk_125MHz;
     -- connect FWFT fifo interface
-    -- control_fifo_rdclk    <= gig_eth_tx_fifo_wrclk;
-    -- gig_eth_tx_fifo_q     <= control_fifo_q(31 DOWNTO 0);
-    -- gig_eth_tx_fifo_wren  <= NOT control_fifo_empty;
-    -- control_fifo_rdreq    <= NOT gig_eth_tx_fifo_full;
+    control_fifo_rdclk    <= gig_eth_tx_fifo_wrclk;
+    gig_eth_tx_fifo_q     <= control_fifo_q(31 DOWNTO 0);
+    gig_eth_tx_fifo_wren  <= NOT control_fifo_empty;
+    control_fifo_rdreq    <= NOT gig_eth_tx_fifo_full;
   END GENERATE gig_eth_cores;
   ---------------------------------------------> gig_eth
   ---------------------------------------------< SDRAM
@@ -1368,7 +1393,7 @@ BEGIN
       RESET   => reset,
       CLK     => clk156p25,
       DIV     => x"1b",
-      CLK_DIV => OPEN -- LED8Bit(0)
+      CLK_DIV => LED8Bit(3)
     );
   ---------------------------------------------> I2C
 
