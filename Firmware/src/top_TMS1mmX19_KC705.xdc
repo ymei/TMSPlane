@@ -13,31 +13,23 @@ create_clock -name si5324_clock -period 6.4 [get_ports {SI5324CLK_P}]
 create_clock -name sgmii_clock  -period 8.0 [get_ports {SGMIICLK_Q0_P}]
 
 # PadFunction: IO_L12P_T1_MRCC_33
-set_property VCCAUX_IO DONTCARE [get_ports {SYS_CLK_P}]
-set_property IOSTANDARD DIFF_SSTL15 [get_ports {SYS_CLK_P}]
-set_property PACKAGE_PIN AD12 [get_ports {SYS_CLK_P}]
-
+set_property -dict {PACKAGE_PIN AD12 IOSTANDARD DIFF_SSTL15 VCCAUX_IO DONTCARE} [get_ports {SYS_CLK_P}]
 # PadFunction: IO_L12N_T1_MRCC_33
-set_property VCCAUX_IO DONTCARE [get_ports {SYS_CLK_N}]
-set_property IOSTANDARD DIFF_SSTL15 [get_ports {SYS_CLK_N}]
-set_property PACKAGE_PIN AD11 [get_ports {SYS_CLK_N}]
+set_property -dict {PACKAGE_PIN AD11 IOSTANDARD DIFF_SSTL15 VCCAUX_IO DONTCARE} [get_ports {SYS_CLK_N}]
 
 # Set DCI_CASCADE
 set_property slave_banks {32 34} [get_iobanks 33]
 
 # 156.25MHz clock, IOSTANDARD is overridden in IBUFDS
-set_property IOSTANDARD LVDS_25 [get_ports {USER_CLK_P}]
-set_property PACKAGE_PIN K28 [get_ports {USER_CLK_P}]
-set_property IOSTANDARD LVDS_25 [get_ports {USER_CLK_N}]
-set_property PACKAGE_PIN K29 [get_ports {USER_CLK_N}]
+set_property -dict {PACKAGE_PIN K28 IOSTANDARD LVDS_25} [get_ports {USER_CLK_P}]
+set_property -dict {PACKAGE_PIN K29 IOSTANDARD LVDS_25} [get_ports {USER_CLK_N}]
 
 # 125MHz clock, for GTP/GTH/GTX
 set_property PACKAGE_PIN G8 [get_ports {SGMIICLK_Q0_P}]
 set_property PACKAGE_PIN G7 [get_ports {SGMIICLK_Q0_N}]
 
 # External clock IC Si5324
-set_property PACKAGE_PIN AE20 [get_ports SI5324_RSTn]
-set_property IOSTANDARD LVCMOS25 [get_ports SI5324_RSTn]
+set_property -dict {PACKAGE_PIN AE20 IOSTANDARD LVCMOS25} [get_ports SI5324_RSTn]
 set_property PACKAGE_PIN L8 [get_ports SI5324CLK_P]
 set_property PACKAGE_PIN L7 [get_ports SI5324CLK_N]
 
@@ -54,115 +46,49 @@ set_false_path -from [get_pins -of_objects [get_cells -hierarchical -filter {NAM
 #<-- LEDs, buttons and switches --<
 
 # Bank: 33 - GPIO_SW_7 (CPU_RESET)
-set_property VCCAUX_IO DONTCARE [get_ports {SYS_RST}]
-set_property SLEW SLOW [get_ports {SYS_RST}]
-set_property IOSTANDARD LVCMOS15 [get_ports {SYS_RST}]
-set_property LOC AB7 [get_ports {SYS_RST}]
-# set_property PACKAGE_PIN AB7 [get_ports CPU_RESET]
-# set_property IOSTANDARD LVCMOS15 [get_ports CPU_RESET]
-
+set_property -dict {PACKAGE_PIN AB7 IOSTANDARD LVCMOS15 VCCAUX_IO DONTCARE SLEW SLOW} [get_ports {SYS_RST}]
 # LED:
 # Bank: 33 - GPIO_LED_0_LS
-set_property DRIVE 12 [get_ports {LED8Bit[0]}]
-set_property SLEW SLOW [get_ports {LED8Bit[0]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {LED8Bit[0]}]
-set_property LOC AB8 [get_ports {LED8Bit[0]}]
-
+set_property -dict {PACKAGE_PIN AB8 IOSTANDARD LVCMOS15 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[0]}]
 # Bank: 33 - GPIO_LED_1_LS
-set_property DRIVE 12 [get_ports {LED8Bit[1]}]
-set_property SLEW SLOW [get_ports {LED8Bit[1]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {LED8Bit[1]}]
-set_property LOC AA8 [get_ports {LED8Bit[1]}]
-
+set_property -dict {PACKAGE_PIN AA8 IOSTANDARD LVCMOS15 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[1]}]
 # Bank: 33 - GPIO_LED_2_LS
-set_property DRIVE 12 [get_ports {LED8Bit[2]}]
-set_property SLEW SLOW [get_ports {LED8Bit[2]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {LED8Bit[2]}]
-set_property LOC AC9 [get_ports {LED8Bit[2]}]
-
+set_property -dict {PACKAGE_PIN AC9 IOSTANDARD LVCMOS15 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[2]}]
 # Bank: 33 - GPIO_LED_3_LS
-set_property DRIVE 12 [get_ports {LED8Bit[3]}]
-set_property SLEW SLOW [get_ports {LED8Bit[3]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {LED8Bit[3]}]
-set_property LOC AB9 [get_ports {LED8Bit[3]}]
-
+set_property -dict {PACKAGE_PIN AB9 IOSTANDARD LVCMOS15 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[3]}]
 # Bank: - GPIO_LED_4_LS
-set_property DRIVE 12 [get_ports {LED8Bit[4]}]
-set_property SLEW SLOW [get_ports {LED8Bit[4]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {LED8Bit[4]}]
-set_property LOC AE26 [get_ports {LED8Bit[4]}]
-
+set_property -dict {PACKAGE_PIN AE26 IOSTANDARD LVCMOS25 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[4]}]
 # Bank: - GPIO_LED_5_LS
-set_property DRIVE 12 [get_ports {LED8Bit[5]}]
-set_property SLEW SLOW [get_ports {LED8Bit[5]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {LED8Bit[5]}]
-set_property LOC G19 [get_ports {LED8Bit[5]}]
-
+set_property -dict {PACKAGE_PIN G19 IOSTANDARD LVCMOS25 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[5]}]
 # Bank: - GPIO_LED_6_LS
-set_property DRIVE 12 [get_ports {LED8Bit[6]}]
-set_property SLEW SLOW [get_ports {LED8Bit[6]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {LED8Bit[6]}]
-set_property LOC E18 [get_ports {LED8Bit[6]}]
-
+set_property -dict {PACKAGE_PIN E18 IOSTANDARD LVCMOS25 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[6]}]
 # Bank: - GPIO_LED_7_LS
-set_property DRIVE 12 [get_ports {LED8Bit[7]}]
-set_property SLEW SLOW [get_ports {LED8Bit[7]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {LED8Bit[7]}]
-set_property LOC F16 [get_ports {LED8Bit[7]}]
-
+set_property -dict {PACKAGE_PIN F16 IOSTANDARD LVCMOS25 DRIVE 12 SLEW SLOW} [get_ports {LED8Bit[7]}]
 # GPIO_DIP_SW0
-set_property SLEW SLOW [get_ports {DIPSw4Bit[0]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {DIPSw4Bit[0]}]
-set_property LOC Y29 [get_ports {DIPSw4Bit[0]}]
-
+set_property -dict {PACKAGE_PIN Y29 IOSTANDARD LVCMOS25 SLEW SLOW} [get_ports {DIPSw4Bit[0]}]
 # GPIO_DIP_SW1
-set_property SLEW SLOW [get_ports {DIPSw4Bit[1]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {DIPSw4Bit[1]}]
-set_property LOC W29 [get_ports {DIPSw4Bit[1]}]
-
+set_property -dict {PACKAGE_PIN W29 IOSTANDARD LVCMOS25 SLEW SLOW} [get_ports {DIPSw4Bit[1]}]
 # GPIO_DIP_SW2
-set_property SLEW SLOW [get_ports {DIPSw4Bit[2]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {DIPSw4Bit[2]}]
-set_property LOC AA28 [get_ports {DIPSw4Bit[2]}]
-
+set_property -dict {PACKAGE_PIN AA28 IOSTANDARD LVCMOS25 SLEW SLOW} [get_ports {DIPSw4Bit[2]}]
 # GPIO_DIP_SW3
-set_property SLEW SLOW [get_ports {DIPSw4Bit[3]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {DIPSw4Bit[3]}]
-set_property LOC Y28 [get_ports {DIPSw4Bit[3]}]
-
+set_property -dict {PACKAGE_PIN Y28 IOSTANDARD LVCMOS25 SLEW SLOW} [get_ports {DIPSw4Bit[3]}]
 # GPIO_SW_N : SW2
-set_property SLEW SLOW [get_ports {BTN5Bit[0]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {BTN5Bit[0]}]
-set_property LOC AA12 [get_ports {BTN5Bit[0]}]
-
+set_property -dict {PACKAGE_PIN AA12 IOSTANDARD LVCMOS15 SLEW SLOW} [get_ports {BTN5Bit[0]}]
 # GPIO_SW_E : SW3
-set_property SLEW SLOW [get_ports {BTN5Bit[1]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {BTN5Bit[1]}]
-set_property LOC AG5 [get_ports {BTN5Bit[1]}]
-
+set_property -dict {PACKAGE_PIN AG5 IOSTANDARD LVCMOS15 SLEW SLOW} [get_ports {BTN5Bit[1]}]
 # GPIO_SW_S : SW4
-set_property SLEW SLOW [get_ports {BTN5Bit[2]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {BTN5Bit[2]}]
-set_property LOC AB12 [get_ports {BTN5Bit[2]}]
-
+set_property -dict {PACKAGE_PIN AB12 IOSTANDARD LVCMOS15 SLEW SLOW} [get_ports {BTN5Bit[2]}]
 # GPIO_SW_C : SW5
-set_property SLEW SLOW [get_ports {BTN5Bit[3]}]
-set_property IOSTANDARD LVCMOS25 [get_ports {BTN5Bit[3]}]
-set_property LOC G12 [get_ports {BTN5Bit[3]}]
-
+set_property -dict {PACKAGE_PIN G12 IOSTANDARD LVCMOS25 SLEW SLOW} [get_ports {BTN5Bit[3]}]
 # GPIO_SW_W : SW6
-set_property SLEW SLOW [get_ports {BTN5Bit[4]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {BTN5Bit[4]}]
-set_property LOC AC6 [get_ports {BTN5Bit[4]}]
+set_property -dict {PACKAGE_PIN AC6 IOSTANDARD LVCMOS15 SLEW SLOW} [get_ports {BTN5Bit[4]}]
 
 #>-- LEDs, buttons and switches -->
 
 #<-- UART --<
 
-set_property PACKAGE_PIN K24 [get_ports {USB_RX}]
-set_property IOSTANDARD LVCMOS25 [get_ports {USB_RX}]
-set_property PACKAGE_PIN M19 [get_ports {USB_TX}]
-set_property IOSTANDARD LVCMOS25 [get_ports {USB_TX}]
+set_property -dict {PACKAGE_PIN K24 IOSTANDARD LVCMOS25} [get_ports {USB_RX}]
+set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVCMOS25} [get_ports {USB_TX}]
 
 #>-- UART -->
 
@@ -181,7 +107,7 @@ set_property PACKAGE_PIN K1 [get_ports SMA_MGT_TX_N]
 set_property PACKAGE_PIN K6 [get_ports SMA_MGT_RX_P]
 set_property PACKAGE_PIN K5 [get_ports SMA_MGT_RX_N]
 
-set_property LOC GTXE2_CHANNEL_X0Y8 [get_cells aurora_64b66b_inst/aurora_64b66b_0_support_inst/aurora_64b66b_0_i/inst/aurora_64b66b_0_wrapper_i/aurora_64b66b_0_multi_gt_i/aurora_64b66b_0_gtx_inst/gtxe2_i]
+# set_property LOC GTXE2_CHANNEL_X0Y8 [get_cells aurora_64b66b_inst/aurora_64b66b_0_support_inst/aurora_64b66b_0_i/inst/aurora_64b66b_0_wrapper_i/aurora_64b66b_0_multi_gt_i/aurora_64b66b_0_gtx_inst/gtxe2_i]
 set_property LOC GTXE2_COMMON_X0Y2 [get_cells aurora_64b66b_inst/aurora_64b66b_0_support_inst/gt_common_support/gtxe2_common_i]
 
 #>-- SMA MGT -->
@@ -189,10 +115,8 @@ set_property LOC GTXE2_COMMON_X0Y2 [get_cells aurora_64b66b_inst/aurora_64b66b_0
 #<-- ten gig eth interface --<
 
 # SFP
-set_property PACKAGE_PIN Y20 [get_ports SFP_TX_DISABLE_N]
-set_property IOSTANDARD LVCMOS25 [get_ports SFP_TX_DISABLE_N]
-set_property PACKAGE_PIN P19 [get_ports SFP_LOS_LS]
-set_property IOSTANDARD LVCMOS25 [get_ports SFP_LOS_LS]
+set_property -dict {PACKAGE_PIN Y20 IOSTANDARD LVCMOS25} [get_ports SFP_TX_DISABLE_N]
+set_property -dict {PACKAGE_PIN P19 IOSTANDARD LVCMOS25} [get_ports SFP_LOS_LS]
 set_property PACKAGE_PIN H2 [get_ports SFP_TX_P]
 set_property PACKAGE_PIN H1 [get_ports SFP_TX_N]
 set_property PACKAGE_PIN G4 [get_ports SFP_RX_P]
@@ -216,37 +140,22 @@ set_property LOC GTXE2_COMMON_X0Y2 [get_cells ten_gig_eth_cores.ten_gig_eth_inst
 
 #<-- gigabit eth interface --<
 
-set_property PACKAGE_PIN L20      [get_ports PHY_RESET_N]
-set_property IOSTANDARD  LVCMOS25 [get_ports PHY_RESET_N]
-set_property PACKAGE_PIN J21      [get_ports MDIO]
-set_property IOSTANDARD  LVCMOS25 [get_ports MDIO]
-set_property PACKAGE_PIN R23      [get_ports MDC]
-set_property IOSTANDARD  LVCMOS25 [get_ports MDC]
-
-set_property PACKAGE_PIN U28      [get_ports RGMII_RXD[3]]
-set_property PACKAGE_PIN T25      [get_ports RGMII_RXD[2]]
-set_property PACKAGE_PIN U25      [get_ports RGMII_RXD[1]]
-set_property PACKAGE_PIN U30      [get_ports RGMII_RXD[0]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_RXD[3]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_RXD[2]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_RXD[1]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_RXD[0]]
-set_property PACKAGE_PIN L28      [get_ports RGMII_TXD[3]]
-set_property PACKAGE_PIN M29      [get_ports RGMII_TXD[2]]
-set_property PACKAGE_PIN N25      [get_ports RGMII_TXD[1]]
-set_property PACKAGE_PIN N27      [get_ports RGMII_TXD[0]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_TXD[3]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_TXD[2]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_TXD[1]]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_TXD[0]]
-set_property PACKAGE_PIN M27      [get_ports RGMII_TX_CTL]
-set_property PACKAGE_PIN K30      [get_ports RGMII_TXC]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_TX_CTL]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_TXC]
-set_property PACKAGE_PIN R28      [get_ports RGMII_RX_CTL]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_RX_CTL]
-set_property PACKAGE_PIN U27      [get_ports RGMII_RXC]
-set_property IOSTANDARD  LVCMOS25 [get_ports RGMII_RXC]
+set_property -dict {PACKAGE_PIN L20 IOSTANDARD LVCMOS25} [get_ports PHY_RESET_N]
+set_property -dict {PACKAGE_PIN J21 IOSTANDARD LVCMOS25} [get_ports MDIO]
+set_property -dict {PACKAGE_PIN R23 IOSTANDARD LVCMOS25} [get_ports MDC]
+#
+set_property -dict {PACKAGE_PIN U28 IOSTANDARD LVCMOS25} [get_ports RGMII_RXD[3]]
+set_property -dict {PACKAGE_PIN T25 IOSTANDARD LVCMOS25} [get_ports RGMII_RXD[2]]
+set_property -dict {PACKAGE_PIN U25 IOSTANDARD LVCMOS25} [get_ports RGMII_RXD[1]]
+set_property -dict {PACKAGE_PIN U30 IOSTANDARD LVCMOS25} [get_ports RGMII_RXD[0]]
+set_property -dict {PACKAGE_PIN L28 IOSTANDARD LVCMOS25} [get_ports RGMII_TXD[3]]
+set_property -dict {PACKAGE_PIN M29 IOSTANDARD LVCMOS25} [get_ports RGMII_TXD[2]]
+set_property -dict {PACKAGE_PIN N25 IOSTANDARD LVCMOS25} [get_ports RGMII_TXD[1]]
+set_property -dict {PACKAGE_PIN N27 IOSTANDARD LVCMOS25} [get_ports RGMII_TXD[0]]
+set_property -dict {PACKAGE_PIN M27 IOSTANDARD LVCMOS25} [get_ports RGMII_TX_CTL]
+set_property -dict {PACKAGE_PIN K30 IOSTANDARD LVCMOS25} [get_ports RGMII_TXC]
+set_property -dict {PACKAGE_PIN R28 IOSTANDARD LVCMOS25} [get_ports RGMII_RX_CTL]
+set_property -dict {PACKAGE_PIN U27 IOSTANDARD LVCMOS25} [get_ports RGMII_RXC]
 
 # already set in ip / tri_mode_ethernet_mac_0.xdc
 # create_clock -period 8 [get_ports RGMII_RXC]
@@ -287,21 +196,14 @@ set_false_path -to [get_pins -of_objects [get_cells -hierarchical -filter {NAME 
 #>-- gigabit eth interface -->
 
 # I2C
-set_property PACKAGE_PIN K21     [get_ports I2C_SCL]
-set_property IOSTANDARD LVCMOS25 [get_ports I2C_SCL]
-set_property PACKAGE_PIN L21     [get_ports I2C_SDA]
-set_property IOSTANDARD LVCMOS25 [get_ports I2C_SDA]
+set_property -dict {PACKAGE_PIN K21 IOSTANDARD LVCMOS25} [get_ports I2C_SCL]
+set_property -dict {PACKAGE_PIN L21 IOSTANDARD LVCMOS25} [get_ports I2C_SDA]
 
 # SMA
-set_property PACKAGE_PIN L25 [get_ports {USER_SMA_CLOCK_P}]
-set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_CLOCK_P]
-set_property PACKAGE_PIN K25 [get_ports {USER_SMA_CLOCK_N}]
-set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_CLOCK_N]
-
-set_property PACKAGE_PIN Y23 [get_ports USER_SMA_GPIO_P]
-set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_GPIO_P]
-set_property PACKAGE_PIN Y24 [get_ports USER_SMA_GPIO_N]
-set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_GPIO_N]
+set_property -dict {PACKAGE_PIN L25 IOSTANDARD LVCMOS25} [get_ports USER_SMA_CLOCK_P]
+set_property -dict {PACKAGE_PIN K25 IOSTANDARD LVCMOS25} [get_ports USER_SMA_CLOCK_N]
+set_property -dict {PACKAGE_PIN Y23 IOSTANDARD LVCMOS25} [get_ports USER_SMA_GPIO_P]
+set_property -dict {PACKAGE_PIN Y24 IOSTANDARD LVCMOS25} [get_ports USER_SMA_GPIO_N]
 
 # Local Variables:
 # mode: tcl

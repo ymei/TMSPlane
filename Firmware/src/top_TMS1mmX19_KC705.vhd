@@ -1036,6 +1036,9 @@ BEGIN
   END GENERATE ten_gig_eth_cores;
   ---------------------------------------------> ten_gig_eth
   ---------------------------------------------< gtx / aurora
+  SFP_TX_DISABLE_N <= '1';
+  LED8Bit(0) <= NOT SFP_LOS_LS;         -- SFP is plugged in.
+  LED8Bit(1) <= aurora_status(0);       -- link up.
   aurora_64b66b_inst : aurora_64b66b
     PORT MAP (
       RESET               => aurora_reset,
@@ -1091,7 +1094,7 @@ BEGIN
       RX_FIFO_Q        => gig_eth_rx_fifo_q,
       RX_FIFO_RDEN     => gig_eth_rx_fifo_rden,
       RX_FIFO_EMPTY    => gig_eth_rx_fifo_empty,
-      ERR              => LED8Bit(1)
+      ERR              => OPEN -- LED8Bit(1)
     );
   gig_eth_tcp_use_fifo  <= '1';
   gig_eth_rx_fifo_rdclk <= gig_eth_tx_fifo_wrclk;
@@ -1365,7 +1368,7 @@ BEGIN
       RESET   => reset,
       CLK     => clk156p25,
       DIV     => x"1b",
-      CLK_DIV => LED8Bit(0)
+      CLK_DIV => OPEN -- LED8Bit(0)
     );
   ---------------------------------------------> I2C
 

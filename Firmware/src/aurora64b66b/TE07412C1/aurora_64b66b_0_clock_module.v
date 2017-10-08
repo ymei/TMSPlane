@@ -50,7 +50,6 @@
  //
  // THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
  // PART OF THIS FILE AT ALL TIMES.
-
  //
  ///////////////////////////////////////////////////////////////////////////////
  //
@@ -67,20 +66,20 @@
 (* DowngradeIPIdentifiedWarnings="yes" *)
  module aurora_64b66b_0_CLOCK_MODULE #
  (
-       parameter   MULT            =   6,
+       parameter   MULT            =   14,
 
-       parameter   DIVIDE          =   3,
+       parameter   DIVIDE          =   1,
 
-       parameter   CLK_PERIOD      =   3.200	,
+       parameter   CLK_PERIOD      =   10.240	,
 
-       parameter   OUT0_DIVIDE     =   4,
+       parameter   OUT0_DIVIDE     =   28,
 
-       parameter   OUT1_DIVIDE     =   2,
-       parameter   OUT2_DIVIDE     =   6,
+       parameter   OUT1_DIVIDE     =   14,
+       parameter   OUT2_DIVIDE     =   20,
        parameter   OUT3_DIVIDE     =   8
  )
  (
-     INIT_CLK,
+     INIT_CLK, // ymei
      INIT_CLK_O,
      CLK,
      CLK_LOCKED,
@@ -95,7 +94,7 @@
 
  //***********************************Port Declarations*******************************
 
-     input       INIT_CLK;
+     input       INIT_CLK; // ymei
      output      INIT_CLK_O;
      input       CLK;
      input       CLK_LOCKED;

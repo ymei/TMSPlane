@@ -503,7 +503,9 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL adc_clk_src_sel                   : std_logic;
   SIGNAL adc_clkff                         : std_logic;
   SIGNAL adc_clk0_lpbk                     : std_logic;
+  SIGNAL adc_sdrn_ddr                      : std_logic;
   SIGNAL adc_cnv_n                         : std_logic;
+  SIGNAL adc_sdoa0                         : std_logic;
   SIGNAL tms_pwr_on                        : std_logic;
   SIGNAL tms_sio_a                         : std_logic_vector(2 DOWNTO 0);
   SIGNAL tms_sdi                           : std_logic;
@@ -860,6 +862,9 @@ BEGIN
   END GENERATE ten_gig_eth_cores;
   ---------------------------------------------> ten_gig_eth
   ---------------------------------------------< gtx / aurora
+  -- SFP_TX_DISABLE_N <= '1';
+  LED8Bit(0) <= NOT B14_L_P(19);        -- NOT SFP_LOS_LS;  -- SFP is plugged in.
+  LED8Bit(1) <= aurora_status(0);                           -- link up
   aurora_64b66b_inst : aurora_64b66b
     PORT MAP (
       RESET               => aurora_reset,
@@ -915,7 +920,7 @@ BEGIN
       RX_FIFO_Q        => control_fifo_q(31 DOWNTO 0),
       RX_FIFO_RDEN     => control_fifo_rdreq,
       RX_FIFO_EMPTY    => control_fifo_empty,
-      ERR              => LED8Bit(1)
+      ERR              => OPEN -- LED8Bit(1)
     );
   fifo_over_ufc_tx_fifo : fifo36x512
     PORT MAP (
@@ -947,7 +952,7 @@ BEGIN
   --
   dbg_ila1_inst : dbg_ila1
     PORT MAP (
-      CLK    => aurora_user_clk,
+      CLK    => clk_100MHz, -- aurora_user_clk,
       PROBE0 => dbg_ila1_probe0,
       PROBE1 => dbg_ila1_probe1
     );
@@ -955,7 +960,7 @@ BEGIN
     "00000" & aurora_status(2) & aurora_status(1) & aurora_status(0)
     & aurora_reset & aurora_ufc_in_progress_n & aurora_ufc_rx_tlast & aurora_ufc_rx_tvalid
     & aurora_ufc_tx_req & aurora_ufc_tx_tready & aurora_ufc_tx_tvalid & aurora_tx_tready;
-  dbg_ila1_probe1 <= aurora_ufc_rx_tdata(7 DOWNTO 0) & aurora_ufc_tx_tdata(7 DOWNTO 0);
+  -- dbg_ila1_probe1 <= aurora_ufc_rx_tdata(7 DOWNTO 0) & aurora_ufc_tx_tdata(7 DOWNTO 0);
   ---------------------------------------------> gtx / aurora
   ---------------------------------------------< I2C
   i2c_sda_iobuf_inst : IOBUF
@@ -990,7 +995,7 @@ BEGIN
       RESET   => reset,
       CLK     => clk156p25,
       DIV     => x"1b",
-      CLK_DIV => LED8Bit(0)
+      CLK_DIV => OPEN -- LED8Bit(0)
     );
   ---------------------------------------------> I2C
   ---------------------------------------------< TMS
@@ -1027,6 +1032,18 @@ BEGIN
       OB => B16_L_N(17),
       I  => adc_cnv_n
     );
+  adc_cnv_n_obuf_inst : OBUF
+    PORT MAP (
+      O => B13_L_P(11),
+      I => adc_cnv_n
+    );
+  adc_cnv_n <= pulse_reg(2);
+  adc_sdrn_ddr_obuf_inst : OBUF
+    PORT MAP (
+      O => B13_L_N(11),
+      I => adc_sdrn_ddr
+    );
+  adc_sdrn_ddr <= '0';
   adc_clkff_obufds_inst : OBUFDS
     GENERIC MAP(
       IOSTANDARD => "DEFAULT",
@@ -1037,7 +1054,7 @@ BEGIN
       OB => B16_L_N(13),
       I  => adc_clkff
     );
-  adc_clkff <= clk_100MHz;
+  adc_clkff <= clk_50MHz;
   adc_clk0_lpbk_ibufds_inst : IBUFDS
     GENERIC MAP (
       DIFF_TERM    => true,             -- Differential Termination
@@ -1049,6 +1066,19 @@ BEGIN
       I  => B16_L_P(12),  -- Diff_p buffer input (connect directly to top-level port)
       IB => B16_L_N(12)   -- Diff_n buffer input (connect directly to top-level port)
     );
+  adc_sdoa0_ibufds_inst : IBUFDS
+    GENERIC MAP (
+      DIFF_TERM    => true,             -- Differential Termination
+      IBUF_LOW_PWR => false,  -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
+      IOSTANDARD   => "DEFAULT"
+    )
+    PORT MAP (
+      O  => adc_sdoa0,                  -- Buffer output
+      I  => B12_L_P(4), -- Diff_p buffer input (connect directly to top-level port)
+      IB => B12_L_N(4)  -- Diff_n buffer input (connect directly to top-level port)
+    );
+  --
+  dbg_ila1_probe1 <= x"00" & "0000" & adc_cnv_n & adc_clkff & adc_clk0_lpbk & adc_sdoa0;
   ---------------------------------------------> TMS
 
   -- clock output

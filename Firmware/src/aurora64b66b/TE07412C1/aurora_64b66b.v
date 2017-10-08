@@ -149,12 +149,14 @@ module aurora_64b66b
       .drpen_in            (drpen_in_i),
       .drpwe_in            (drpwe_in_i),
       //---------------------- GTXE2 COMMON DRP Ports ----------------------
+      /* ymei: uncomment if qpll is used, e.g. @ 10Gpbs rate
       .qpll_drpaddr_in     (qpll_drpaddr_in_i),
       .qpll_drpdi_in       (qpll_drpdi_in_i),
       .qpll_drpdo_out      (qpll_drpdo_out_i),
       .qpll_drprdy_out     (qpll_drprdy_out_i),
       .qpll_drpen_in       (qpll_drpen_in_i),
       .qpll_drpwe_in       (qpll_drpwe_in_i),
+       */
       //
       .init_clk            (init_clk_i),
       .link_reset_out      (link_reset_out_i),
