@@ -292,6 +292,32 @@ ARCHITECTURE Behavioral OF top IS
   END COMPONENT;
   ---------------------------------------------> UART/RS232
   ---------------------------------------------< I2C
+  COMPONENT i2c_master
+    GENERIC (
+      INPUT_CLK_FREQENCY : integer := 100_000_000;
+      -- BUS CLK freqency should be divided by multiples of 4 from input frequency
+      BUS_CLK_FREQUENCY  : integer := 100_000
+    );
+    PORT (
+      CLK       : IN  std_logic;        -- system clock 50Mhz
+      RESET     : IN  std_logic;        -- active high reset
+      START     : IN  std_logic;  -- rising edge triggers r/w; synchronous to CLK
+      MODE      : IN  std_logic_vector(1 DOWNTO 0);  -- "00" : 1 bytes read or write, "01" : 2 bytes r/w, "10" : 3 bytes write only;
+      SL_RW     : IN  std_logic;        -- '0' is write, '1' is read
+      SL_ADDR   : IN  std_logic_vector(6 DOWNTO 0);  -- slave addr
+      REG_ADDR  : IN  std_logic_vector(7 DOWNTO 0);  -- slave internal reg addr for read and write
+      WR_DATA0  : IN  std_logic_vector(7 DOWNTO 0);  -- first data byte to write
+      WR_DATA1  : IN  std_logic_vector(7 DOWNTO 0);  -- second data byte to write
+      RD_DATA0  : OUT std_logic_vector(7 DOWNTO 0);  -- first data byte read
+      RD_DATA1  : OUT std_logic_vector(7 DOWNTO 0);  -- second data byte read
+      BUSY      : OUT std_logic;        -- indicates transaction in progress
+      ACK_ERROR : OUT std_logic;        -- i2c has unexpected ack
+      SDA_in    : IN  std_logic;        -- serial data input from i2c bus
+      SDA_out   : OUT std_logic;        -- serial data output to i2c bus
+      SDA_t     : OUT std_logic;  -- serial data direction to/from i2c bus, '1' is read-in
+      SCL       : OUT std_logic         -- serial clock output to i2c bus
+    );
+  END COMPONENT;
   COMPONENT i2c_write_regmap
     GENERIC (
       REGMAP_FNAME        : string;
@@ -316,6 +342,64 @@ ARCHITECTURE Behavioral OF top IS
     );
   END COMPONENT;
   ---------------------------------------------> I2C
+  ---------------------------------------------< shiftreg driver for DAC8568
+  COMPONENT fifo2shiftreg
+    GENERIC (
+      DATA_WIDTH        : positive  := 32;  -- parallel data width
+      CLK_DIV_WIDTH     : positive  := 16;
+      DELAY_AFTER_SYNCn : natural   := 0;  -- number of SCLK cycles' wait after falling edge OF SYNCn
+      SCLK_IDLE_LEVEL   : std_logic := '0';  -- High or Low for SCLK when not switching
+      DOUT_DRIVE_EDGE   : std_logic := '1';  -- 1/0 rising/falling edge of SCLK drives new DOUT bit
+      DIN_CAPTURE_EDGE  : std_logic := '0'  -- 1/0 rising/falling edge of SCLK captures new DIN bit
+    );
+    PORT (
+      CLK      : IN  std_logic;         -- clock
+      RESET    : IN  std_logic;         -- reset
+      -- input data interface
+      WR_CLK   : IN  std_logic;         -- FIFO write clock
+      DINFIFO  : IN  std_logic_vector(15 DOWNTO 0);
+      WR_EN    : IN  std_logic;
+      WR_PULSE : IN  std_logic;  -- one pulse writes one word, regardless of pulse duration
+      FULL     : OUT std_logic;
+      -- captured data
+      BUSY     : OUT std_logic;
+      DATAOUT  : OUT std_logic_vector(DATA_WIDTH-1 DOWNTO 0);
+      -- serial interface
+      CLK_DIV  : IN  std_logic_vector(CLK_DIV_WIDTH-1 DOWNTO 0);  -- SCLK freq is CLK / 2**(CLK_DIV)
+      SCLK     : OUT std_logic;
+      DOUT     : OUT std_logic;
+      SYNCn    : OUT std_logic;
+      DIN      : IN  std_logic
+    );
+  END COMPONENT;
+  ---------------------------------------------> shiftreg driver for DAC8568
+  ---------------------------------------------< TMS serial io
+  COMPONENT shiftreg_drive
+    GENERIC (
+      DATA_WIDTH        : positive  := 32;  -- parallel data width
+      CLK_DIV_WIDTH     : positive  := 16;
+      DELAY_AFTER_SYNCn : natural   := 0;  -- number of SCLK cycles' wait after falling edge OF SYNCn
+      SCLK_IDLE_LEVEL   : std_logic := '0';  -- High or Low for SCLK when not switching
+      DOUT_DRIVE_EDGE   : std_logic := '1';  -- 1/0 rising/falling edge of SCLK drives new DOUT bit
+      DIN_CAPTURE_EDGE  : std_logic := '0'  -- 1/0 rising/falling edge of SCLK captures new DIN bit
+    );
+    PORT (
+      CLK     : IN  std_logic;          -- clock
+      RESET   : IN  std_logic;          -- reset
+      -- internal data interface
+      CLK_DIV : IN  std_logic_vector(CLK_DIV_WIDTH-1 DOWNTO 0);  -- SCLK freq is CLK / 2**(CLK_DIV)
+      DATAIN  : IN  std_logic_vector(DATA_WIDTH-1 DOWNTO 0);
+      START   : IN  std_logic;
+      BUSY    : OUT std_logic;
+      DATAOUT : OUT std_logic_vector(DATA_WIDTH-1 DOWNTO 0);
+      -- external serial interface
+      SCLK    : OUT std_logic;
+      DOUT    : OUT std_logic;
+      SYNCn   : OUT std_logic;
+      DIN     : IN  std_logic
+    );
+  END COMPONENT;
+  ---------------------------------------------> TMS serial io
   ---------------------------------------------< debug : ILA and VIO (`Chipscope')
   COMPONENT dbg_ila
     PORT (
@@ -498,10 +582,22 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL i2c_sda_in                        : std_logic;
   SIGNAL i2c_sda_t                         : std_logic;
   SIGNAL i2c_scl_out                       : std_logic;
+  SIGNAL i2c1_sda_out                      : std_logic;
+  SIGNAL i2c1_sda_in                       : std_logic;
+  SIGNAL i2c1_sda_t                        : std_logic;
+  SIGNAL i2c1_scl_out                      : std_logic;
   ---------------------------------------------> I2C
+  ---------------------------------------------< shiftreg driver for DAC8568
+  SIGNAL spi_sclk                          : std_logic;
+  SIGNAL spi_dout                          : std_logic;
+  SIGNAL spi_sync_n                        : std_logic;
+  SIGNAL spi_din                           : std_logic;
+  ---------------------------------------------> shiftreg driver for DAC8568
   ---------------------------------------------< TMS
   SIGNAL adc_clk_src_sel                   : std_logic;
   SIGNAL adc_clkff                         : std_logic;
+  SIGNAL adc_clkff_div                     : std_logic_vector(3 DOWNTO 0);
+  SIGNAL adc_clkff_tmp                     : std_logic;
   SIGNAL adc_clk0_lpbk                     : std_logic;
   SIGNAL adc_sdrn_ddr                      : std_logic;
   SIGNAL adc_cnv_n                         : std_logic;
@@ -515,6 +611,11 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL dac_sclk                          : std_logic;
   SIGNAL dac_sync_n                        : std_logic;
   SIGNAL tms_reset                         : std_logic;
+  SIGNAL tms_clk_src_sel                   : std_logic;
+  SIGNAL tms_clkff                         : std_logic;
+  SIGNAL tms_clkff_div                     : std_logic_vector(3 DOWNTO 0);
+  SIGNAL tms_clkff_tmp                     : std_logic;
+  SIGNAL tms_clk_lpbk                      : std_logic;
   ---------------------------------------------> TMS
   ---------------------------------------------< debug
   SIGNAL dbg_ila_probe0                           : std_logic_vector(63 DOWNTO 0);
@@ -863,7 +964,7 @@ BEGIN
   ---------------------------------------------> ten_gig_eth
   ---------------------------------------------< gtx / aurora
   -- SFP_TX_DISABLE_N <= '1';
-  LED8Bit(0) <= NOT B14_L_P(19);        -- NOT SFP_LOS_LS;  -- SFP is plugged in.
+  -- LED8Bit(0) <= NOT B14_L_P(19);        -- NOT SFP_LOS_LS;  -- SFP is plugged in.
   LED8Bit(1) <= aurora_status(0);                           -- link up
   aurora_64b66b_inst : aurora_64b66b
     PORT MAP (
@@ -901,10 +1002,10 @@ BEGIN
       -- Status
       STATUS              => aurora_status
     );
-  aurora_reset <= reset OR pulse_reg(1);
+  aurora_reset <= reset OR pulse_reg(15);
   fifo_over_ufc_inst : fifo_over_ufc
     PORT MAP (
-      RESET            => reset,
+      RESET            => aurora_reset,
       AURORA_USER_CLK  => aurora_user_clk,
       AURORA_TX_REQ    => aurora_ufc_tx_req,
       AURORA_TX_MS     => aurora_ufc_tx_ms,
@@ -924,7 +1025,7 @@ BEGIN
     );
   fifo_over_ufc_tx_fifo : fifo36x512
     PORT MAP (
-      rst    => reset,
+      rst    => aurora_reset,
       wr_clk => control_fifo_rdclk,
       rd_clk => control_clk,
       din    => x"0" & aurora_ufc_tx_fifo_q,
@@ -952,7 +1053,7 @@ BEGIN
   --
   dbg_ila1_inst : dbg_ila1
     PORT MAP (
-      CLK    => clk_100MHz, -- aurora_user_clk,
+      CLK    => clk_200MHz, -- aurora_user_clk,
       PROBE0 => dbg_ila1_probe0,
       PROBE1 => dbg_ila1_probe1
     );
@@ -995,13 +1096,152 @@ BEGIN
       RESET   => reset,
       CLK     => clk156p25,
       DIV     => x"1b",
-      CLK_DIV => OPEN -- LED8Bit(0)
+      CLK_DIV => LED8Bit(0)
+    );
+  -- Temperature and voltage sensors
+  i2c1_sda_iobuf_inst : IOBUF
+    GENERIC MAP(
+      DRIVE      => 12,
+      SLEW       => "SLOW"
+    )
+    PORT MAP(
+      O  => i2c1_sda_in,
+      IO => B14_L_P(19),
+      I  => i2c1_sda_out,
+      T  => i2c1_sda_t
+    );
+  i2c1_scl_iobuf_inst : IOBUF
+    GENERIC MAP(
+      DRIVE      => 12,
+      SLEW       => "SLOW"
+    )
+    PORT MAP(
+      O  => OPEN,
+      IO => B14_L_P(14),
+      I  => i2c1_scl_out,
+      T  => '0'
+    );
+  i2c1_master_inst : i2c_master
+    GENERIC MAP (
+      INPUT_CLK_FREQENCY => 100_000_000,
+      BUS_CLK_FREQUENCY  => 100_000
+    )
+    PORT MAP (
+      CLK       => control_clk,
+      RESET     => reset,
+      START     => pulse_reg(2),
+      MODE      => config_reg(16*2+1  DOWNTO 16*2),
+      SL_RW     => config_reg(16*3+15),
+      SL_ADDR   => config_reg(16*3+14 DOWNTO 16*3+8),
+      REG_ADDR  => config_reg(16*3+7  DOWNTO 16*3),
+      WR_DATA0  => config_reg(16*4+15 DOWNTO 16*4+8),
+      WR_DATA1  => config_reg(16*4+7  DOWNTO 16*4),
+      RD_DATA0  => status_reg(16*0+15 DOWNTO 16*0+8),
+      RD_DATA1  => status_reg(16*0+7  DOWNTO 16*0),
+      BUSY      => OPEN,
+      ACK_ERROR => OPEN,
+      SDA_in    => i2c1_sda_in,
+      SDA_out   => i2c1_sda_out,
+      SDA_t     => i2c1_sda_t,
+      SCL       => i2c1_scl_out
     );
   ---------------------------------------------> I2C
+  ---------------------------------------------< shiftreg driver for DAC8568
+  dac8568_inst : fifo2shiftreg
+    GENERIC MAP (
+      DATA_WIDTH        => 32,          -- parallel data width
+      CLK_DIV_WIDTH     => 16,
+      DELAY_AFTER_SYNCn => 0,  -- number of SCLK cycles' wait after falling edge OF SYNCn
+      SCLK_IDLE_LEVEL   => '0',  -- High or Low for SCLK when not switching
+      DOUT_DRIVE_EDGE   => '1',  -- 1/0 rising/falling edge of SCLK drives new DOUT bit
+      DIN_CAPTURE_EDGE  => '0'  -- 1/0 rising/falling edge of SCLK captures new DIN bit
+    )
+    PORT MAP (
+      CLK      => control_clk,          -- clock
+      RESET    => reset,                -- reset
+      -- input data interface
+      WR_CLK   => control_clk,          -- FIFO write clock
+      DINFIFO  => config_reg(16*1+15 DOWNTO 16*1),
+      WR_EN    => '0',
+      WR_PULSE => pulse_reg(1),  -- one pulse writes one word, regardless of pulse duration
+      FULL     => OPEN,
+      -- captured data
+      BUSY     => OPEN,
+      DATAOUT  => OPEN,
+      -- serial interface
+      CLK_DIV  => x"0006",
+      SCLK     => spi_sclk,
+      DOUT     => spi_dout,
+      SYNCn    => spi_sync_n,
+      DIN      => spi_din
+    );
+  dac_din    <= spi_dout;
+  dac_sclk   <= spi_sclk;
+  dac_sync_n <= spi_sync_n;
+  ---------------------------------------------> shiftreg driver for DAC8568
+  ---------------------------------------------< TMS serial io
+  tms_sio_a <= config_reg(16*5+tms_sio_a'length-1 DOWNTO 16*5);
+  tms_sio_drive_inst : shiftreg_drive
+    GENERIC MAP (
+      DATA_WIDTH        => 130,         -- parallel data width
+      CLK_DIV_WIDTH     => 8,
+      DELAY_AFTER_SYNCn => 0,  -- number of SCLK cycles' wait after falling edge OF SYNCn
+      SCLK_IDLE_LEVEL   => '1',  -- High or Low for SCLK when not switching
+      DOUT_DRIVE_EDGE   => '0',  -- 1/0 rising/falling edge of SCLK drives new DOUT bit
+      DIN_CAPTURE_EDGE  => '1'  -- 1/0 rising/falling edge of SCLK captures new DIN bit
+    )
+    PORT MAP (
+      CLK     => control_clk,           -- clock
+      RESET   => reset,                 -- reset
+      -- internal data interface
+      CLK_DIV => config_reg(16*5+15 DOWNTO 16*5+8),  -- SCLK freq is CLK / 2**(CLK_DIV)
+      DATAIN  => config_reg(16*14+1 DOWNTO 16*6),
+      START   => pulse_reg(3),
+      BUSY    => status_reg(16*9+2),
+      DATAOUT => status_reg(16*9+1 DOWNTO 16*1),
+      -- external serial interface
+      SCLK    => tms_sck,
+      DOUT    => tms_sdi,
+      SYNCn   => OPEN,
+      DIN     => tms_sdo
+    );
+  ---------------------------------------------> TMS serial io
   ---------------------------------------------< TMS
+  tms_pwr_on      <= config_reg(16*0+0);
+  adc_clk_src_sel <= config_reg(16*0+2);
+  adc_sdrn_ddr    <= config_reg(16*0+3);
+  tms_clk_src_sel <= config_reg(16*0+1);
+  adc_cnv_n       <= pulse_reg(14);
+  adc_clkff_div_inst : clk_div
+    GENERIC MAP (
+      WIDTH => 32,
+      PBITS => 4
+    )
+    PORT MAP (
+      RESET   => reset,
+      CLK     => clk_100MHz,
+      DIV     => adc_clkff_div,
+      CLK_DIV => adc_clkff_tmp
+    );
+  adc_clkff_div <= config_reg(16*0+15 DOWNTO 16*0+12);
+  adc_clkff     <= '0' WHEN adc_clkff_div = x"0" ELSE adc_clkff_tmp;
+  tms_clkff_div_inst : clk_div
+    GENERIC MAP (
+      WIDTH => 32,
+      PBITS => 4
+    )
+    PORT MAP (
+      RESET   => reset,
+      CLK     => clk_50MHz,
+      DIV     => tms_clkff_div,
+      CLK_DIV => tms_clkff_tmp
+    );
+  tms_clkff_div <= config_reg(16*0+11 DOWNTO 16*0+8);
+  tms_clkff     <= '0' WHEN tms_clkff_div = x"0" ELSE tms_clkff_tmp;
+  --
   B16_L_N(6)      <= adc_clk_src_sel;
   B16_L_N(19)     <= adc_clk_src_sel;
-  adc_clk_src_sel <= '0';
+  B12_L_P(25)     <= adc_sdrn_ddr;
   B14_L_N(4)      <= tms_pwr_on;
   B14_L_P(4)      <= tms_sio_a(2);
   B14_L_N(13)     <= tms_sio_a(1);
@@ -1009,6 +1249,7 @@ BEGIN
   B14_L_P(23)     <= tms_sdi;
   tms_sdo         <= B14_L_N(19);
   B14_L_P(0)      <= tms_sck;
+  B12_L_P(0)      <= tms_clk_src_sel;
   B14_L_P(21)     <= dac_din;
   B14_L_P(20)     <= dac_sclk;
   B14_L_N(23)     <= dac_sync_n;
@@ -1022,6 +1263,27 @@ BEGIN
       OB => B13_L_N(3),
       I  => tms_reset
     );
+  tms_clkff_obufds_inst : OBUFDS
+    GENERIC MAP(
+      IOSTANDARD => "DEFAULT",
+      SLEW       => "SLOW"
+    )
+    PORT MAP (
+      O  => B12_L_P(16),
+      OB => B12_L_N(16),
+      I  => tms_clkff
+    );
+  tms_clk_lpbk_ibufds_inst : IBUFDS
+    GENERIC MAP (
+      DIFF_TERM    => true,             -- Differential Termination
+      IBUF_LOW_PWR => false,  -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
+      IOSTANDARD   => "DEFAULT"
+    )
+    PORT MAP (
+      O  => tms_clk_lpbk,              -- Buffer output
+      I  => B12_L_P(12),  -- Diff_p buffer input (connect directly to top-level port)
+      IB => B12_L_N(12)   -- Diff_n buffer input (connect directly to top-level port)
+    );
   adc_cnv_n_obufds_inst : OBUFDS
     GENERIC MAP(
       IOSTANDARD => "DEFAULT",
@@ -1032,18 +1294,6 @@ BEGIN
       OB => B16_L_N(17),
       I  => adc_cnv_n
     );
-  adc_cnv_n_obuf_inst : OBUF
-    PORT MAP (
-      O => B13_L_P(11),
-      I => adc_cnv_n
-    );
-  adc_cnv_n <= pulse_reg(2);
-  adc_sdrn_ddr_obuf_inst : OBUF
-    PORT MAP (
-      O => B13_L_N(11),
-      I => adc_sdrn_ddr
-    );
-  adc_sdrn_ddr <= '0';
   adc_clkff_obufds_inst : OBUFDS
     GENERIC MAP(
       IOSTANDARD => "DEFAULT",
@@ -1054,7 +1304,6 @@ BEGIN
       OB => B16_L_N(13),
       I  => adc_clkff
     );
-  adc_clkff <= clk_50MHz;
   adc_clk0_lpbk_ibufds_inst : IBUFDS
     GENERIC MAP (
       DIFF_TERM    => true,             -- Differential Termination
@@ -1078,7 +1327,7 @@ BEGIN
       IB => B12_L_N(4)  -- Diff_n buffer input (connect directly to top-level port)
     );
   --
-  dbg_ila1_probe1 <= x"00" & "0000" & adc_cnv_n & adc_clkff & adc_clk0_lpbk & adc_sdoa0;
+  dbg_ila1_probe1 <= x"00" & i2c1_sda_in & i2c1_sda_out & i2c1_scl_out & tms_clk_lpbk & adc_cnv_n & adc_clkff & adc_clk0_lpbk & adc_sdoa0;
   ---------------------------------------------> TMS
 
   -- clock output

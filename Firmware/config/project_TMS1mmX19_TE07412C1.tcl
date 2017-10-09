@@ -141,6 +141,8 @@ set files [list \
  "[file normalize "$origin_dir/../src/aurora64b66b/TE07412C1/aurora_64b66b_0_support.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/TE07412C1/aurora_64b66b.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/fifo_over_ufc.v"]"\
+ "[file normalize "$origin_dir/../src/fifo2shiftreg.vhd"]"\
+ "[file normalize "$origin_dir/../src/shiftreg_drive.vhd"]"\
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -331,6 +333,19 @@ add_files -norecurse -fileset $obj $files
 set obj [get_filesets sources_1]
 set files [list \
  "[file normalize "$origin_dir/../ipcore_dir/TE07412C1/ten_gig_eth_packet_ram/ten_gig_eth_packet_ram.xci"]"\
+]
+add_files -norecurse -fileset $obj $files
+
+# Set 'sources_1' fileset file properties for remote files
+# None
+
+# Set 'sources_1' fileset file properties for local files
+# None
+
+# Set 'sources_1' fileset object
+set obj [get_filesets sources_1]
+set files [list \
+ "[file normalize "$origin_dir/../ipcore_dir/TE07412C1/fifo16to32/fifo16to32.xci"]"\
 ]
 add_files -norecurse -fileset $obj $files
 

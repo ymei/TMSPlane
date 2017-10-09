@@ -45,8 +45,13 @@
 * DO NOT touch anything in GT selections.  Will select in .xdc.
 * Shared logic in example design
 * Copy ```aurora_64b66b_0_ex/aurora_64b66b_0_ex.srcs/shared_logic/*``` to ```src/aurora64b66b/KC705/```
+* ```qpll``` section may need to be commented out.  Other modifications are marked with "ymei".
 
 In `top', the byte ordering is handled by declaring all signals as ```(n DOWNTO 0)``` and assign directly to the core.  The core considers ```i=0``` as the MSB for sizes etc.  In HDL the direct assignment doesn't change bit order but considers arrays of wire-pins physically plug together regardless of the labeling.
+
+### TE0741
+
+Files in ```src/aurora64b66b/TE0741/``` may be identical to ```src/aurora64b66b/KC705/```.
 
 ## ten_gig_eth
 When pcs_pma core is updated, open its example design and compare to the source to update.  Updates in the source were marked with --ymei
@@ -71,4 +76,25 @@ Pull-none, RS Pins 25:24
 ```
 ### TE0741
 * 32 MByte QSPI Flash memory, Cypress S25FL256SAGBHI20, 3.3V.
-* Do not erase nonvolatile QE (Quad Enable) bit on the TE0741 serial flash! FPGA boot is supported only in 4 bit mode with QE enabled.
+* Do not erase nonvolatile QE (Quad Enable) bit on the TE0741 serial flash!  FPGA boot is supported only in 4 bit mode with QE enabled.
+
+## Register map
+### TE0741
+| ```config_reg``` | Value composition                                       | Comment |
+| ----------------:| ------------------------------------------------------- | ------- |
+| 0                | 15~12'adc_clkff_div, 11~8'tms_clkff_div, 3'adc_sdrn_ddr, 2'adc_clk_src_sel, 1'tms_clk_src_sel, 0'tms_pwr_on | |
+| 1                | 15~0'external SPI DAC data                              |         |
+| 2                | 7~4'tms_sio_clk_div, 1~0'I2C mode | I2C mode: 0= 1byte r/w, 1= 2byte r/w |
+| 3                | 15'I2C r/w, 14~8'I2C slave addr, 7~0'I2C slave reg addr |         |
+| 4                | 15~8'I2C first byte, 7~0'I2C second byte                |         |
+| 5                | 15~8'tms_sio_clkdiv, 7~0'tms_sio_a                      |         |
+| 6~14             | 14:1~6:0'tms_sio_dout_130bits                           |         |
+| ```status_reg``` |                                                         |         |
+| 0                | 15~8'I2C first byte, 7~0'I2C second byte                |         |
+| 1~9              | 9:1~1:0'tms_sio_din_130bits, 9:2'tms_sio_busy           |         |
+| ```pulse_reg```  |                                                         |         |
+| 0                | tms_reset                                               |         |
+| 1                | external SPI DAC write one word                         |         |
+| 2                | I2C read/write start                                    |         |
+| 3                | tms_sio read/write start                                |         |
+| 15               | aurora reset                                            |         |
