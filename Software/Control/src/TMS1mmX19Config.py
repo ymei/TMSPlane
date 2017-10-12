@@ -109,16 +109,20 @@ class DAC8568(object):
 ## TMS serial io r/w
 # @param[in] colAddr TMS array column address.
 # @param[in] dout 130bit register val
-def tms_sio_rw(s, cmd, colAddr, dout, clkDiv=7, configRegId=5, dcfgBase=6, dstatBase=1, pulseRegId=3):
+def tms_sio_rw(s, cmd, colAddr, dout, clkDiv=7, dcfgBase=5, dstatBase=1, pulseRegId=3):
     # column address and clock div
-    cmdStr = cmd.write_register(configRegId, clkDiv<<8 | colAddr)
+    colAddrClkDivVal = colAddr << 8 | clkDiv << 2
+    cmdStr = cmd.write_register(dcfgBase+8, colAddrClkDivVal)
     s.sendall(cmdStr)
     # drive dout
     cmdStr = ""
-    for i in xrange(9):
+    for i in xrange(8):
         cmdStr += cmd.write_register(dcfgBase+i, (dout >> i*16) & 0xffff)
+    i = 8
+    cmdStr += cmd.write_register(dcfgBase+i, (dout >> i*16) & 0xffff | colAddrClkDivVal)
     cmdStr += cmd.send_pulse(1<<pulseRegId)
     s.sendall(cmdStr)
+#    print(":".join("{:02x}".format(ord(c)) for c in cmdStr))
     # readback
     time.sleep(0.2)
     cmdStr = ""
@@ -151,12 +155,12 @@ if __name__ == "__main__":
 
     time.sleep(0.1)
 
-    tms_pwr_on = 1
+    tms_pwr_on      = 1
     tms_clk_src_sel = 0 # 0: FPGA, 1: external
-    tms_clkff_div = 1 # /2**x, 0 disables clock
-    adc_clk_src_sel = 1
-    adc_clkff_div = 1
-    adc_sdrn_ddr = 0 # 0: sdr, 1: ddr
+    tms_clkff_div   = 1 # /2**x, 0 disables clock
+    adc_clk_src_sel = 0
+    adc_clkff_div   = 0
+    adc_sdrn_ddr    = 0 # 0: sdr, 1: ddr
     cmdStr  = cmd.write_register(0, adc_clkff_div   <<12 |
                                     tms_clkff_div   << 8 |
                                     adc_sdrn_ddr    << 3 |
@@ -178,7 +182,11 @@ if __name__ == "__main__":
     ret = s.recv(4)
     print(":".join("{:02x}".format(ord(c)) for c in ret))
 #
-    tms_sio_rw(s, cmd, 4, 0xa)
+    tms_sio_rw(s, cmd, 2, 0xb)
 #
+# adc idelay
+    cmdStr  = cmd.write_register(14, 20<<8 | 1)
+    cmdStr += cmd.send_pulse(1<<4)
+    s.sendall(cmdStr)
     s.close()
 

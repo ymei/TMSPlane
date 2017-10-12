@@ -87,8 +87,8 @@ Pull-none, RS Pins 25:24
 | 2                | 7~4'tms_sio_clk_div, 1~0'I2C mode | I2C mode: 0= 1byte r/w, 1= 2byte r/w |
 | 3                | 15'I2C r/w, 14~8'I2C slave addr, 7~0'I2C slave reg addr |         |
 | 4                | 15~8'I2C first byte, 7~0'I2C second byte                |         |
-| 5                | 15~8'tms_sio_clkdiv, 7~0'tms_sio_a                      |         |
-| 6~14             | 14:1~6:0'tms_sio_dout_130bits                           |         |
+| 5~13             | 13:15~8'tms_sio_a, 13:7~2'tms_sio_clkdiv, 13:1~5:0'tms_sio_dout_130bits |       |
+| 14               | 15~8'adc external idelay_channel, 4~0'idelay value      | CH=20 is adc_clk_lpbk |
 | ```status_reg``` |                                                         |         |
 | 0                | 15~8'I2C first byte, 7~0'I2C second byte                |         |
 | 1~9              | 9:1~1:0'tms_sio_din_130bits, 9:2'tms_sio_busy           |         |
@@ -97,4 +97,12 @@ Pull-none, RS Pins 25:24
 | 1                | external SPI DAC write one word                         |         |
 | 2                | I2C read/write start                                    |         |
 | 3                | tms_sio read/write start                                |         |
+| 4                | adc external iodelay_update                             |         |
 | 15               | aurora reset                                            |         |
+
+## LTC2325-16 ADC
+
+In pseudo-differential mode, REF=2.048V, AIN- is held at 1.024V, AIN+ is allowed to swing between 0 and REF, which corresponds to output code in the range from -16384 to 16383.  One LSB is 62.5uV.  ```Vi=1.024 + LSB * code```.
+
+## Notes
+* ODELAYE2 exists only in HP banks.

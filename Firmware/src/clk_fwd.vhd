@@ -1,22 +1,10 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:    19:32:46 01/25/2015
--- Design Name: 
--- Module Name:    clk_fwd - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description:    Clock forwarding
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
---
-----------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--! @file clk_fwd.vhd
+--! @brief Clock forwarding
+--! @author Yuan Mei
+--!
+--! Allow both single_ended and differential outputs.
+--------------------------------------------------------------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 
@@ -31,18 +19,22 @@ USE UNISIM.VComponents.ALL;
 
 ENTITY clk_fwd IS
   GENERIC (
-    INV : boolean := false
+    INV  : boolean := false;
+    SLEW : string  := "SLOW"
   );
   PORT (
-    R : IN  std_logic;
-    I : IN  std_logic;
-    O : OUT std_logic
+    R   : IN  std_logic;
+    I   : IN  std_logic;
+    O   : OUT std_logic;
+    O_P : OUT std_logic;
+    O_N : OUT std_logic
   );
 END clk_fwd;
 
 ARCHITECTURE Behavioral OF clk_fwd IS
   SIGNAL d1 : std_logic := '1';
   SIGNAL d2 : std_logic := '0';
+  SIGNAL os : std_logic;
 BEGIN
   d1 <= '1' WHEN INV = false ELSE '0';
   d2 <= '0' WHEN INV = false ELSE '1';
@@ -53,7 +45,7 @@ BEGIN
       SRTYPE       => "ASYNC"
     )
     PORT MAP (
-      Q  => O,
+      Q  => os,
       C  => I,
       CE => '1',
       D1 => d1,
@@ -61,5 +53,16 @@ BEGIN
       R  => R,
       S  => '0'
     );
+  clk_fwd_obufds_inst : OBUFDS
+    GENERIC MAP(
+      IOSTANDARD => "DEFAULT",
+      SLEW       => SLEW
+    )
+    PORT MAP (
+      O  => O_P,
+      OB => O_N,
+      I  => os
+    );
+  O <= os;
 
 END Behavioral;

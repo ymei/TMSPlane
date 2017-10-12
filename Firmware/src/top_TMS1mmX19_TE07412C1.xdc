@@ -87,6 +87,21 @@ set_property -dict {PACKAGE_PIN B21 IOSTANDARD LVCMOS33} [get_ports I2C_SDA]
 
 #>-- I2C -->
 
+#<-- ADC, external, LTC2325-16 --<
+# 100MHz SCK loopback
+create_clock -name adc_clk_lpbk -period 10.0 [get_ports {B16_L_P[12]}]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks adc_clk_lpbk]
+# adc_clkff
+create_generated_clock -name adc_clkff_clock -multiply_by 1 -source [get_pins adc_cnv_sipo_inst/adc_clkff_forward_inst/C] [get_ports {B16_L_P[13]}]
+#set_clock_sense -positive adc_cnv_sipo_inst/adc_clkff_div_inst/adc_clkff_forward_inst_i_4/O
+# adc_clk_lpbk
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets adc_cnv_sipo_inst/adc_diffiodelay_inst/CLK_LPBK]
+# adc_cnv_n
+set_output_delay -clock adc_clkff_clock -min -1.0 [get_ports {B16_L_P[17]}]
+set_output_delay -clock adc_clkff_clock -max  1.0 [get_ports {B16_L_P[17]}]
+
+#>-- ADC, external, LTC2325-16 -->
+
 #<-- TE0741 B2B --<
 
 # single-ended

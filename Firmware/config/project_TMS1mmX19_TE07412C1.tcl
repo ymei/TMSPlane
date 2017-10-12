@@ -143,6 +143,8 @@ set files [list \
  "[file normalize "$origin_dir/../src/aurora64b66b/fifo_over_ufc.v"]"\
  "[file normalize "$origin_dir/../src/fifo2shiftreg.vhd"]"\
  "[file normalize "$origin_dir/../src/shiftreg_drive.vhd"]"\
+ "[file normalize "$origin_dir/../src/diffiodelay.v"]"\
+ "[file normalize "$origin_dir/../src/adc_cnv_sipo.v"]"\
 ]
 add_files -norecurse -fileset $obj $files
 

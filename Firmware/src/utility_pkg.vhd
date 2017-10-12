@@ -130,12 +130,15 @@ PACKAGE utility IS
   END COMPONENT;
   COMPONENT clk_fwd
     GENERIC (
-      INV : boolean := false
+      INV  : boolean := false;
+      SLEW : string  := "SLOW"
     );
     PORT (
-      R : IN  std_logic;
-      I : IN  std_logic;
-      O : OUT std_logic
+      R   : IN  std_logic;
+      I   : IN  std_logic;
+      O   : OUT std_logic;
+      O_P : OUT std_logic;
+      O_N : OUT std_logic
     );
   END COMPONENT;
 
