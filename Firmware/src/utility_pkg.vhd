@@ -105,15 +105,21 @@ PACKAGE utility IS
       SO    : OUT std_logic
     );
   END COMPONENT;
-  COMPONENT pulsegen
+  COMPONENT width_pulse_sync IS
     GENERIC (
-      COUNTER_WIDTH : positive := 16
+      DATA_WIDTH : positive := 8;
+      MODE       : natural  := 0        -- 0: output one pulse of duration PW
+                                        -- 1: a train of 1-clk wide pulses (of number PW)
     );
     PORT (
-      CLK    : IN  std_logic;
-      PERIOD : IN  std_logic_vector(COUNTER_WIDTH-1 DOWNTO 0);
-      I      : IN  std_logic;
-      O      : OUT std_logic
+      RESET : IN  std_logic;
+      CLK   : IN  std_logic;
+      PW    : IN  std_logic_vector(DATA_WIDTH-1 DOWNTO 0);
+      START : IN  std_logic;            -- should be synchronous to CLK, of any width
+      BUSY  : OUT std_logic;
+      CLKO  : IN  std_logic;
+      RSTO  : OUT std_logic;
+      PO    : OUT std_logic
     );
   END COMPONENT;
   COMPONENT clk_div IS

@@ -155,17 +155,17 @@ if __name__ == "__main__":
 
     time.sleep(0.1)
 
-    tms_pwr_on      = 1
-    tms_clk_src_sel = 0 # 0: FPGA, 1: external
-    tms_clkff_div   = 1 # /2**x, 0 disables clock
-    adc_clk_src_sel = 0
-    adc_clkff_div   = 0
-    adc_sdrn_ddr    = 0 # 0: sdr, 1: ddr
-    cmdStr  = cmd.write_register(0, adc_clkff_div   <<12 |
-                                    tms_clkff_div   << 8 |
-                                    adc_sdrn_ddr    << 3 |
-                                    adc_clk_src_sel << 2 |
-                                    tms_clk_src_sel << 1 |
+    tms_pwr_on          = 1
+    tms_sdm_clk_src_sel = 0 # 0: FPGA, 1: external
+    tms_sdm_clkff_div   = 2 # /2**x, 0 disables clock
+    adc_clk_src_sel     = 0
+    adc_clkff_div       = 0
+    adc_sdrn_ddr        = 0 # 0: sdr, 1: ddr
+    cmdStr  = cmd.write_register(0, adc_clkff_div       <<12 |
+                                    tms_sdm_clkff_div   << 8 |
+                                    adc_sdrn_ddr        << 3 |
+                                    adc_clk_src_sel     << 2 |
+                                    tms_sdm_clk_src_sel << 1 |
                                     tms_pwr_on)
     cmdStr += cmd.write_register(2, 0x0001) # write 1-byte to I2C reg
     cmdStr += cmd.write_register(3, 0<<15 | 0x4c<<8 | 0x02)
@@ -181,12 +181,18 @@ if __name__ == "__main__":
     s.sendall(cmdStr)
     ret = s.recv(4)
     print(":".join("{:02x}".format(ord(c)) for c in ret))
-#
+# tms serial io
     tms_sio_rw(s, cmd, 2, 0xb)
-#
-# adc idelay
-    cmdStr  = cmd.write_register(14, 20<<8 | 1)
+# tms sdm idelay
+    cmdStr  = cmd.write_register(14, 38<<8 | 1) # clk loopback
+    cmdStr += cmd.send_pulse(1<<4)
+    cmdStr += cmd.write_register(14, 0<<8 | 0)
     cmdStr += cmd.send_pulse(1<<4)
     s.sendall(cmdStr)
+# adc idelay
+    cmdStr  = cmd.write_register(14, 20<<8 | 1) # clk loopback
+    cmdStr += cmd.send_pulse(1<<5)
+    s.sendall(cmdStr)
+#
     s.close()
 

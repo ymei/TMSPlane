@@ -400,6 +400,32 @@ ARCHITECTURE Behavioral OF top IS
     );
   END COMPONENT;
   ---------------------------------------------> TMS serial io
+  ---------------------------------------------< TMS SDM
+  COMPONENT tms_sdm_recv
+    GENERIC (
+      NCH : positive := 19
+    );
+    PORT (
+      RESET         : IN  std_logic;
+      CLK           : IN  std_logic;  -- DELAY_* must be synchronous to this clock
+      REFCLK        : IN  std_logic;    -- REFCLK (200MHz) for IDELAYCTRL
+      DELAY_CHANNEL : IN  std_logic_vector(7 DOWNTO 0);  -- input iodelay channel selection
+      DELAY_VALUE   : IN  std_logic_vector(4 DOWNTO 0);  -- input iodelay value
+      DELAY_UPDATE  : IN  std_logic;    -- a pulse to update the delay value
+      CLKFF_DIV     : IN  std_logic_vector(3 DOWNTO 0);
+      CLKFF_P       : OUT std_logic;
+      CLKFF_N       : OUT std_logic;
+      CLK_LPBK_P    : IN  std_logic;
+      CLK_LPBK_N    : IN  std_logic;
+      CLK_LPBK      : OUT std_logic;
+      SDM_OUT1_P    : IN  std_logic_vector(NCH-1 DOWNTO 0);
+      SDM_OUT1_N    : IN  std_logic_vector(NCH-1 DOWNTO 0);
+      SDM_OUT2_P    : IN  std_logic_vector(NCH-1 DOWNTO 0);
+      SDM_OUT2_N    : IN  std_logic_vector(NCH-1 DOWNTO 0);
+      DOUT          : OUT std_logic_vector(NCH*2-1 DOWNTO 0)
+    );
+  END COMPONENT;
+  ---------------------------------------------> TMS SDM
   ---------------------------------------------< ADC, external, LTC2325-16
   COMPONENT adc_cnv_sipo
     GENERIC (
@@ -623,6 +649,23 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL spi_din                           : std_logic;
   ---------------------------------------------> shiftreg driver for DAC8568
   ---------------------------------------------< TMS
+  SIGNAL tms_pwr_on                        : std_logic;
+  SIGNAL tms_sio_a                         : std_logic_vector(2 DOWNTO 0);
+  SIGNAL tms_sdi                           : std_logic;
+  SIGNAL tms_sdo                           : std_logic;
+  SIGNAL tms_sck                           : std_logic;
+  SIGNAL dac_din                           : std_logic;
+  SIGNAL dac_sclk                          : std_logic;
+  SIGNAL dac_sync_n                        : std_logic;
+  SIGNAL tms_reset                         : std_logic;
+  SIGNAL tms_sdm_clk_src_sel               : std_logic;
+  SIGNAL tms_sdm_clkff_div                 : std_logic_vector(3 DOWNTO 0);
+  SIGNAL tms_sdm_clk_lpbk                  : std_logic;
+  SIGNAL tms_sdm_out1_p                    : std_logic_vector(18 DOWNTO 0);
+  SIGNAL tms_sdm_out1_n                    : std_logic_vector(18 DOWNTO 0);
+  SIGNAL tms_sdm_out2_p                    : std_logic_vector(18 DOWNTO 0);
+  SIGNAL tms_sdm_out2_n                    : std_logic_vector(18 DOWNTO 0);
+  SIGNAL tms_sdm_out                       : std_logic_vector(37 DOWNTO 0);
   SIGNAL adc_clk_src_sel                   : std_logic;
   SIGNAL adc_clkff_div                     : std_logic_vector(3 DOWNTO 0);
   SIGNAL adc_clk0_lpbk                     : std_logic;
@@ -633,20 +676,6 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL adc_sdo                           : std_logic_vector(19 DOWNTO 0);
   SIGNAL adc_dout                          : std_logic_vector(20*16-1 DOWNTO 0);
   SIGNAL adc_dout_valid                    : std_logic;
-  SIGNAL tms_pwr_on                        : std_logic;
-  SIGNAL tms_sio_a                         : std_logic_vector(2 DOWNTO 0);
-  SIGNAL tms_sdi                           : std_logic;
-  SIGNAL tms_sdo                           : std_logic;
-  SIGNAL tms_sck                           : std_logic;
-  SIGNAL dac_din                           : std_logic;
-  SIGNAL dac_sclk                          : std_logic;
-  SIGNAL dac_sync_n                        : std_logic;
-  SIGNAL tms_reset                         : std_logic;
-  SIGNAL tms_clk_src_sel                   : std_logic;
-  SIGNAL tms_clkff                         : std_logic;
-  SIGNAL tms_clkff_div                     : std_logic_vector(3 DOWNTO 0);
-  SIGNAL tms_clkff_tmp                     : std_logic;
-  SIGNAL tms_clk_lpbk                      : std_logic;
   ---------------------------------------------> TMS
   ---------------------------------------------< debug
   SIGNAL dbg_ila_probe0                           : std_logic_vector(63 DOWNTO 0);
@@ -960,16 +989,6 @@ BEGIN
         CMD_FIFO_RDCLK       => clk_200MHz
       );
 
-    --pulsegen_inst : pulsegen
-    --  GENERIC MAP (
-    --    COUNTER_WIDTH => 16
-    --  )
-    --  PORT MAP (
-    --    CLK    => sTx_axis_fifo_aclk,
-    --    PERIOD => config_reg(31 DOWNTO 16),
-    --    I      => pulse_reg(0),
-    --    O      => ten_gig_eth_tx_start
-    --  );
     ten_gig_eth_tx_start <= pulse_reg(0);
 
     dbg_ila_probe0(0) <= clk156p25;
@@ -1178,6 +1197,12 @@ BEGIN
     );
   ---------------------------------------------> I2C
   ---------------------------------------------< shiftreg driver for DAC8568
+  B14_L_P(21) <= dac_din;
+  B14_L_P(20) <= dac_sclk;
+  B14_L_N(23) <= dac_sync_n;
+  dac_din     <= spi_dout;
+  dac_sclk    <= spi_sclk;
+  dac_sync_n  <= spi_sync_n;
   dac8568_inst : fifo2shiftreg
     GENERIC MAP (
       DATA_WIDTH        => 32,          -- parallel data width
@@ -1206,12 +1231,17 @@ BEGIN
       SYNCn    => spi_sync_n,
       DIN      => spi_din
     );
-  dac_din    <= spi_dout;
-  dac_sclk   <= spi_sclk;
-  dac_sync_n <= spi_sync_n;
   ---------------------------------------------> shiftreg driver for DAC8568
   ---------------------------------------------< TMS serial io
-  tms_sio_a <= config_reg(16*13+8+tms_sio_a'length-1 DOWNTO 16*13+8);
+  B14_L_N(4)  <= tms_pwr_on;
+  B14_L_P(4)  <= tms_sio_a(2);
+  B14_L_N(13) <= tms_sio_a(1);
+  B14_L_P(13) <= tms_sio_a(0);
+  B14_L_P(23) <= tms_sdi;
+  tms_sdo     <= B14_L_N(19);
+  B14_L_P(0)  <= tms_sck;
+  tms_pwr_on  <= config_reg(16*0+0);
+  tms_sio_a   <= config_reg(16*13+8+tms_sio_a'length-1 DOWNTO 16*13+8);
   tms_sio_drive_inst : shiftreg_drive
     GENERIC MAP (
       DATA_WIDTH        => 130,         -- parallel data width
@@ -1238,36 +1268,7 @@ BEGIN
     );
   ---------------------------------------------> TMS serial io
   ---------------------------------------------< TMS
-  tms_pwr_on      <= config_reg(16*0+0);
-  tms_clk_src_sel <= config_reg(16*0+1);
-  tms_clkff_div_inst : clk_div
-    GENERIC MAP (
-      WIDTH => 32,
-      PBITS => 4
-    )
-    PORT MAP (
-      RESET   => reset,
-      CLK     => clk_50MHz,
-      DIV     => tms_clkff_div,
-      CLK_DIV => tms_clkff_tmp
-    );
-  tms_clkff_div <= config_reg(16*0+11 DOWNTO 16*0+8);
-  tms_clkff     <= '0' WHEN tms_clkff_div = x"0" ELSE tms_clkff_tmp;
-  --
-  B16_L_N(6)    <= adc_clk_src_sel;
-  B16_L_N(19)   <= adc_clk_src_sel;
-  B12_L_P(25)   <= adc_sdrn_ddr;
-  B14_L_N(4)    <= tms_pwr_on;
-  B14_L_P(4)    <= tms_sio_a(2);
-  B14_L_N(13)   <= tms_sio_a(1);
-  B14_L_P(13)   <= tms_sio_a(0);
-  B14_L_P(23)   <= tms_sdi;
-  tms_sdo       <= B14_L_N(19);
-  B14_L_P(0)    <= tms_sck;
-  B12_L_P(0)    <= tms_clk_src_sel;
-  B14_L_P(21)   <= dac_din;
-  B14_L_P(20)   <= dac_sclk;
-  B14_L_N(23)   <= dac_sync_n;
+  -- TMS reset, also function as serial io load
   tms_reset_obufds_inst : OBUFDS
     GENERIC MAP(
       IOSTANDARD => "DEFAULT",
@@ -1278,28 +1279,136 @@ BEGIN
       OB => B13_L_N(3),
       I  => tms_reset
     );
-  tms_clkff_obufds_inst : OBUFDS
-    GENERIC MAP(
-      IOSTANDARD => "DEFAULT",
-      SLEW       => "SLOW"
-    )
-    PORT MAP (
-      O  => B12_L_P(16),
-      OB => B12_L_N(16),
-      I  => tms_clkff
-    );
-  tms_clk_lpbk_ibufds_inst : IBUFDS
+  tms_reset_width_pulse_sync_inst : width_pulse_sync
     GENERIC MAP (
-      DIFF_TERM    => true,             -- Differential Termination
-      IBUF_LOW_PWR => false,  -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
-      IOSTANDARD   => "DEFAULT"
+      DATA_WIDTH => 8,
+      MODE       => 0
     )
     PORT MAP (
-      O  => tms_clk_lpbk,              -- Buffer output
-      I  => B12_L_P(12),  -- Diff_p buffer input (connect directly to top-level port)
-      IB => B12_L_N(12)   -- Diff_n buffer input (connect directly to top-level port)
+      RESET => reset,
+      CLK   => control_clk,
+      PW    => x"ff",
+      START => pulse_reg(0),
+      BUSY  => OPEN,
+      CLKO  => control_clk,
+      RSTO  => OPEN,
+      PO    => tms_reset
     );
+  -- TMS SDM
+  B12_L_P(0)          <= tms_sdm_clk_src_sel;
+  tms_sdm_clk_src_sel <= config_reg(16*0+1);
+  tms_sdm_clkff_div   <= config_reg(16*0+11 DOWNTO 16*0+8);
+  tms_sdm_recv_inst : tms_sdm_recv
+    GENERIC MAP (
+      NCH => 19
+    )
+    PORT MAP (
+      RESET         => reset,
+      CLK           => control_clk,  -- DELAY_* must be synchronous to this clock
+      REFCLK        => clk_200MHz,   -- REFCLK (200MHz) for IDELAYCTRL
+      DELAY_CHANNEL => config_reg(16*14+15 DOWNTO 16*14+8), -- input iodelay channel selection
+      DELAY_VALUE   => config_reg(16*14+4 DOWNTO 16*14),    -- input iodelay value
+      DELAY_UPDATE  => pulse_reg(4),    -- a pulse to update the delay value
+      CLKFF_DIV     => tms_sdm_clkff_div,
+      CLKFF_P       => B12_L_P(16),
+      CLKFF_N       => B12_L_N(16),
+      CLK_LPBK_P    => B12_L_P(12),
+      CLK_LPBK_N    => B12_L_N(12),
+      CLK_LPBK      => tms_sdm_clk_lpbk,
+      SDM_OUT1_P    => tms_sdm_out1_p,
+      SDM_OUT1_N    => tms_sdm_out1_n,
+      SDM_OUT2_P    => tms_sdm_out2_p,
+      SDM_OUT2_N    => tms_sdm_out2_n,
+      DOUT          => tms_sdm_out
+    );
+  tms_sdm_out1_p <= (
+    0  => B12_L_P(18),
+    1  => B12_L_P(9),
+    2  => B12_L_P(20),
+    3  => B13_L_P(23),
+    4  => B13_L_P(21),
+    5  => B13_L_P(12),
+    6  => B12_L_P(5),
+    7  => B12_L_P(7),
+    8  => B12_L_P(21),
+    9  => B12_L_P(24),
+    10 => B13_L_P(6),
+    11 => B13_L_P(9),
+    12 => B13_L_P(16),
+    13 => B13_L_P(22),
+    14 => B13_L_P(10),
+    15 => B13_L_P(8),
+    16 => B13_L_P(4),
+    17 => B12_L_P(11),
+    18 => B12_L_P(13)
+  );
+  tms_sdm_out1_n <= (
+    0  => B12_L_N(18),
+    1  => B12_L_N(9),
+    2  => B12_L_N(20),
+    3  => B13_L_N(23),
+    4  => B13_L_N(21),
+    5  => B13_L_N(12),
+    6  => B12_L_N(5),
+    7  => B12_L_N(7),
+    8  => B12_L_N(21),
+    9  => B12_L_N(24),
+    10 => B13_L_N(6),
+    11 => B13_L_N(9),
+    12 => B13_L_N(16),
+    13 => B13_L_N(22),
+    14 => B13_L_N(10),
+    15 => B13_L_N(8),
+    16 => B13_L_N(4),
+    17 => B12_L_N(11),
+    18 => B12_L_N(13)
+  );
+  tms_sdm_out2_p <= (
+    0  => B12_L_P(17),
+    1  => B12_L_P(8),
+    2  => B12_L_P(22),
+    3  => B13_L_P(13),
+    4  => B13_L_P(11),
+    5  => B13_L_P(15),
+    6  => B12_L_P(3),
+    7  => B12_L_P(10),
+    8  => B12_L_P(23),
+    9  => B12_L_P(19),
+    10 => B13_L_P(17),
+    11 => B13_L_P(18),
+    12 => B13_L_P(14),
+    13 => B13_L_P(24),
+    14 => B13_L_P(7),
+    15 => B13_L_P(20),
+    16 => B13_L_P(2),
+    17 => B12_L_P(2),
+    18 => B12_L_P(14)
+  );
+  tms_sdm_out2_n <= (
+    0  => B12_L_N(17),
+    1  => B12_L_N(8),
+    2  => B12_L_N(22),
+    3  => B13_L_N(13),
+    4  => B13_L_N(11),
+    5  => B13_L_N(15),
+    6  => B12_L_N(3),
+    7  => B12_L_N(10),
+    8  => B12_L_N(23),
+    9  => B12_L_N(19),
+    10 => B13_L_N(17),
+    11 => B13_L_N(18),
+    12 => B13_L_N(14),
+    13 => B13_L_N(24),
+    14 => B13_L_N(7),
+    15 => B13_L_N(20),
+    16 => B13_L_N(2),
+    17 => B12_L_N(2),
+    18 => B12_L_N(14)
+  );
   -- ADC, external, LTC2325-16
+  B16_L_N(6)    <= adc_clk_src_sel;
+  B16_L_N(19)   <= adc_clk_src_sel;
+  B12_L_P(25)   <= adc_sdrn_ddr;
   adc_clk_src_sel <= config_reg(16*0+2);
   adc_sdrn_ddr    <= config_reg(16*0+3);
   adc_clkff_div   <= config_reg(16*0+15 DOWNTO 16*0+12);
@@ -1313,7 +1422,7 @@ BEGIN
       REFCLK        => clk_200MHz,   -- REFCLK (200MHz) for IDELAYCTRL
       DELAY_CHANNEL => config_reg(16*14+15 DOWNTO 16*14+8), -- ADC data input iodelay channel selection
       DELAY_VALUE   => config_reg(16*14+4 DOWNTO 16*14),    -- ADC data input iodelay value
-      DELAY_UPDATE  => pulse_reg(4),    -- a pulse to update the delay value
+      DELAY_UPDATE  => pulse_reg(5),    -- a pulse to update the delay value
       CLKFF_DIV     => adc_clkff_div,
       CLKFF_P       => B16_L_P(13),
       CLKFF_N       => B16_L_N(13),
@@ -1375,8 +1484,8 @@ BEGIN
   );
   --
   dbg_ila1_probe0 <= adc_dout(16*19+15 DOWNTO 16*19);
-  dbg_ila1_probe1 <= "000000" & tms_sck & i2c1_sda_in
-                     & i2c1_sda_out & i2c1_scl_out & tms_clk_lpbk & adc_dout_valid
+  dbg_ila1_probe1 <= tms_sdm_out(5 DOWNTO 0) & tms_sdm_clk_lpbk & tms_sck
+                     & i2c1_sda_in & i2c1_sda_out & i2c1_scl_out & adc_dout_valid
                      & adc_cnv_n & adc_clk0_lpbk & adc_sdo(19) & adc_sdo(0);
   ---------------------------------------------> TMS
 

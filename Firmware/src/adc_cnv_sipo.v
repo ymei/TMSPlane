@@ -1,4 +1,4 @@
-//% @file adc_cnv_sipo
+//% @file adc_cnv_sipo.v
 //% @brief Drive ADC (LTC2325-16) conversion and convert Serial dataIn to Parallel dataOut.
 //% @author Yuan Mei
 //%
@@ -33,7 +33,7 @@ module adc_cnv_sipo
     output reg              DOUT_VALID
     );
 
-   localparam iodelay_group_name  = "adc_iodelay_grp";
+   localparam iodelay_group_name  = "tms_iodelay_grp";
    reg                 adc_cnv_n;
    reg                 adc_sample_n;
    wire [NCH-1:0]      adc_sdin_v;

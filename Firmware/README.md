@@ -88,7 +88,7 @@ Pull-none, RS Pins 25:24
 | 3                | 15'I2C r/w, 14~8'I2C slave addr, 7~0'I2C slave reg addr |         |
 | 4                | 15~8'I2C first byte, 7~0'I2C second byte                |         |
 | 5~13             | 13:15~8'tms_sio_a, 13:7~2'tms_sio_clkdiv, 13:1~5:0'tms_sio_dout_130bits |       |
-| 14               | 15~8'adc external idelay_channel, 4~0'idelay value      | CH=20 is adc_clk_lpbk |
+| 14               | 15~8'iodelay_channel, 4~0'iodelay value                 | CH=20 for adc is clk_lpbk, CH=38 for tms_sdm is clk_lpbk |
 | ```status_reg``` |                                                         |         |
 | 0                | 15~8'I2C first byte, 7~0'I2C second byte                |         |
 | 1~9              | 9:1~1:0'tms_sio_din_130bits, 9:2'tms_sio_busy           |         |
@@ -97,8 +97,13 @@ Pull-none, RS Pins 25:24
 | 1                | external SPI DAC write one word                         |         |
 | 2                | I2C read/write start                                    |         |
 | 3                | tms_sio read/write start                                |         |
-| 4                | adc external iodelay_update                             |         |
+| 4                | tms_sdm iodelay_update                                  |         |
+| 5                | adc external iodelay_update                             |         |
 | 15               | aurora reset                                            |         |
+
+## TMS SDM
+
+Channels in data, as well as for iodelay_channel mapping, are interleaved as ```... SDM1_OUT2, SDM1_OUT1, SDM0_OUT2, SDM0_OUT1```.
 
 ## LTC2325-16 ADC
 
@@ -106,3 +111,4 @@ In pseudo-differential mode, REF=2.048V, AIN- is held at 1.024V, AIN+ is allowed
 
 ## Notes
 * ODELAYE2 exists only in HP banks.
+* .xdc file does not support sophisticated TCL features.  Rename the file to .tcl will let Vivado support it as a full TCL script.
