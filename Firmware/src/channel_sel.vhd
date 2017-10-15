@@ -1,20 +1,20 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
+-- Company:
+-- Engineer:
+--
 -- Create Date:    19:32:46 06/20/2014
--- Design Name: 
+-- Design Name:
 -- Module Name:    channel_sel - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
+-- Project Name:
+-- Target Devices:
+-- Tool versions:
+-- Description:
 --
--- Dependencies: 
+-- Dependencies:
 --
--- Revision: 
+-- Revision:
 -- Revision 0.01 - File Created
--- Additional Comments: 
+-- Additional Comments:
 --
 ----------------------------------------------------------------------------------
 LIBRARY ieee;
@@ -42,7 +42,7 @@ ENTITY channel_sel IS
     --
     DATA_FIFO_RESET : IN  std_logic;
     --
-    INDATA_Q        : IN  std_logic_vector(INDATA_WIDTH-1 DOWNTO 0);    
+    INDATA_Q        : IN  std_logic_vector(INDATA_WIDTH-1 DOWNTO 0);
     DATA_FIFO_WREN  : IN  std_logic;
     DATA_FIFO_FULL  : OUT std_logic;
     --
@@ -99,16 +99,16 @@ ARCHITECTURE Behavioral OF channel_sel IS
   SIGNAL fifo_rst          : std_logic;
   --
   SIGNAL fifo16_indata_q   : std_logic_vector(15 DOWNTO 0);
-  SIGNAL fifo16_indata_q1  : std_logic_vector(63 DOWNTO 0);  
+  SIGNAL fifo16_indata_q1  : std_logic_vector(63 DOWNTO 0);
   SIGNAL fifo16_wren       : std_logic := '0';
-  SIGNAL fifo16_wren1      : std_logic := '0';  
+  SIGNAL fifo16_wren1      : std_logic := '0';
   SIGNAL fifo16_rden       : std_logic;
-  SIGNAL fifo16_rden1      : std_logic;  
+  SIGNAL fifo16_rden1      : std_logic;
   SIGNAL fifo16_outdata_q  : std_logic_vector(OUTDATA_WIDTH-1 DOWNTO 0);
   SIGNAL fifo16_outdata_q1 : std_logic_vector(63 DOWNTO 0);
   SIGNAL fifo16_full       : std_logic;
   SIGNAL fifo16_full1      : std_logic;
-  SIGNAL fifo16_empty      : std_logic;  
+  SIGNAL fifo16_empty      : std_logic;
   SIGNAL fifo16_empty1     : std_logic;
   --
   SIGNAL fifo64_indata_q   : std_logic_vector(63 DOWNTO 0);
@@ -157,7 +157,7 @@ BEGIN
   fifo16_rden1     <= NOT fifo16_full1;
   fifo16_wren1     <= NOT fifo16_empty1;
   ---------------------------------------------------------------------------------------------
-  
+
   fifo64 : fifo64to256                  -- FWFT
     PORT MAP (
       RST    => fifo_rst,
@@ -184,7 +184,7 @@ BEGIN
       EMPTY  => fifo128_empty
     );
 
-  PROCESS (CLK) IS 
+  PROCESS (CLK) IS
    VARIABLE i : integer;
    VARIABLE j : integer;
   BEGIN
@@ -200,10 +200,10 @@ BEGIN
 
   PROCESS (SEL)
     VARIABLE offset : integer := 0;
-  BEGIN 
+  BEGIN
     -- defaults
     fifo16_wren      <= '0';
-    fifo16_rden      <= '0';    
+    fifo16_rden      <= '0';
     fifo64_wren      <= '0';
     fifo64_rden      <= '0';
     fifo128_wren     <= '0';

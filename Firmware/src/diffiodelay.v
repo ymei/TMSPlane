@@ -36,7 +36,7 @@ module diffiodelay
    wire [NOUTPUT-1:0]         outputs_in_i;
 
    // select which channel to write the delay_value to
-   always @ (DELAY_CHANNEL) begin
+   always @ (DELAY_CHANNEL, du) begin
       delay_update_v                <= 0;
       delay_update_v[DELAY_CHANNEL] <= du;
    end

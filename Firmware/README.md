@@ -70,13 +70,16 @@ Mode switch: M2 M1 M0
 1 0 1 JTAG
 
 In Vivado, use the Tcl command:
-write_cfgmem -format MCS -size 128 -interface BPIx16 -loadbit "up 0x0 top/top.runs/impl_1/top.bit" target/FMC112IPv4Sel.mcs
+write_cfgmem -format MCS -size 128 -interface BPIx16 -loadbit "up 0x0 top.runs/impl_1/top.bit" -file "../target/FMC112IPv4Sel.mcs"
 Then in Hardware Manager, choose Micron density 1024Mb 28f00ap30t-bpi-x16
 Pull-none, RS Pins 25:24
 ```
 ### TE0741
 * 32 MByte QSPI Flash memory, Cypress S25FL256SAGBHI20, 3.3V.
 * Do not erase nonvolatile QE (Quad Enable) bit on the TE0741 serial flash!  FPGA boot is supported only in 4 bit mode with QE enabled.
+```
+write_cfgmem -format MCS -size 128 -interface SPIx4 -loadbit "up 0x0 top.runs/impl_1/top.bit" -file "../target/TE0741.mcs"
+```
 
 ## Register map
 ### TE0741
@@ -110,5 +113,10 @@ Channels in data, as well as for iodelay_channel mapping, are interleaved as ```
 In pseudo-differential mode, REF=2.048V, AIN- is held at 1.024V, AIN+ is allowed to swing between 0 and REF, which corresponds to output code in the range from -16384 to 16383.  One LSB is 62.5uV.  ```Vi=1.024 + LSB * code```.
 
 ## Notes
+
 * ODELAYE2 exists only in HP banks.
 * .xdc file does not support sophisticated TCL features.  Rename the file to .tcl will let Vivado support it as a full TCL script.
+* ```report_cdc -details -file cdc_report.txt``` to check clock domain crossing.
+* ```set_clock_groups``` command with only one `-group' parameter means the clock is asynchronous to all other, including generated from its own, clocks.  So, explictly specify all possible clock group pairs in .xdc!
+* ```set_input_delay``` ```-min +HOLD_TIME``` ```-max (CLOCK_PERIOD-SETUP_TIME)```.
+* ```set_output_delay``` ```-min -HOLD_TIME``` ```-max SETUP_TIME```.

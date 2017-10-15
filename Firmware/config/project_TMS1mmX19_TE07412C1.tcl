@@ -147,6 +147,7 @@ set files [list \
  "[file normalize "$origin_dir/../src/diffiodelay.v"]"\
  "[file normalize "$origin_dir/../src/adc_cnv_sipo.v"]"\
  "[file normalize "$origin_dir/../src/tms_sdm_recv.v"]"\
+ "[file normalize "$origin_dir/../src/sdm_adc_data_aggregator.v"]"\
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -363,6 +364,19 @@ add_files -norecurse -fileset $obj $files
 set obj [get_filesets sources_1]
 set files [list \
  "[file normalize "$origin_dir/../ipcore_dir/TE07412C1/fifo16to64/fifo16to64.xci"]"\
+]
+add_files -norecurse -fileset $obj $files
+
+# Set 'sources_1' fileset file properties for remote files
+# None
+
+# Set 'sources_1' fileset file properties for local files
+# None
+
+# Set 'sources_1' fileset object
+set obj [get_filesets sources_1]
+set files [list \
+ "[file normalize "$origin_dir/../ipcore_dir/TE07412C1/fifo64x/fifo64x.xci"]"\
 ]
 add_files -norecurse -fileset $obj $files
 

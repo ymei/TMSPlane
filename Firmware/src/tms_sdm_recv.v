@@ -27,13 +27,16 @@ module tms_sdm_recv
     input [NCH-1:0]        SDM_OUT1_N,
     input [NCH-1:0]        SDM_OUT2_P,
     input [NCH-1:0]        SDM_OUT2_N,
-    output reg [NCH*2-1:0] DOUT
+    output reg [NCH*2-1:0] DOUT,
+    output reg             DOUT_VALID
     );
 
    localparam iodelay_group_name = "tms_iodelay_grp";
    wire             tms_sdm_clkff_tmp, tms_sdm_clkff_tmp1, tms_sdm_clkff_tmp2;
+   (* KEEP = "TRUE" *)
    wire             tms_sdm_clk_lpbk;
    wire [NCH*2-1:0] tms_sdm_out_v;
+   (* ASYNC_REG = "TRUE" *)
    reg [NCH*2-1:0]  tms_sdm_out_v1;
    wire [NCH*2-1:0] tms_sdm_out_p, tms_sdm_out_n;
 
@@ -120,15 +123,30 @@ module tms_sdm_recv
    // clk_lpbk
    assign CLK_LPBK = tms_sdm_clk_lpbk;
    // sample using loop-back clock
-   always @ (posedge tms_sdm_clk_lpbk) begin
-      tms_sdm_out_v1 <= tms_sdm_out_v;
-   end
-   // sample in CLK domain
-   always @ (posedge CLK or posedge RESET) begin
+   always @ (posedge tms_sdm_clk_lpbk or posedge RESET) begin
       if (RESET) begin
+         tms_sdm_out_v1 <= 0;
       end
       else begin
-         DOUT <= tms_sdm_out_v1;
+         tms_sdm_out_v1 <= tms_sdm_out_v;
+      end
+   end
+   // sample in CLK domain
+   (* ASYNC_REG = "TRUE" *)
+   reg dout_valid_prev;
+   always @ (posedge CLK or posedge RESET) begin
+      if (RESET) begin
+         dout_valid_prev <= 0;
+         DOUT            <= 0;
+         DOUT_VALID      <= 0;
+      end
+      else begin
+         DOUT            <= tms_sdm_out_v1;
+         dout_valid_prev <= tms_sdm_clk_lpbk;
+         DOUT_VALID <= 0;
+         if (!dout_valid_prev && tms_sdm_clk_lpbk) begin
+            DOUT_VALID <= 1;
+         end
       end
    end
 

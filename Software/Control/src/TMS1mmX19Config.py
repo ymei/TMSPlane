@@ -192,6 +192,8 @@ if __name__ == "__main__":
 # adc idelay
     cmdStr  = cmd.write_register(14, 20<<8 | 1) # clk loopback
     cmdStr += cmd.send_pulse(1<<5)
+    cmdStr += cmd.write_register(14, 19<<8 | 0)
+    cmdStr += cmd.send_pulse(1<<5)
     s.sendall(cmdStr)
 #
     s.close()

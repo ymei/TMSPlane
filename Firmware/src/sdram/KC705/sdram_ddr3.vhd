@@ -1,21 +1,21 @@
 ----------------------------------------------------------------------------------
 -- Company:  LBNL
 -- Engineer: Yuan Mei
--- 
--- Create Date: 12/17/2013 07:22:25 PM
--- Design Name: 
--- Module Name: sdram_ddr3 - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
 --
--- Dependencies: 
--- 
+-- Create Date: 12/17/2013 07:22:25 PM
+-- Design Name:
+-- Module Name: sdram_ddr3 - Behavioral
+-- Project Name:
+-- Target Devices:
+-- Tool Versions:
+-- Description:
+--
+-- Dependencies:
+--
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
--- 
+--
 ----------------------------------------------------------------------------------
 
 
@@ -181,17 +181,17 @@ ARCHITECTURE Behavioral OF sdram_ddr3 IS
     --
     CTRL_RESET         : IN  std_logic;
     WR_START           : IN  std_logic;
-    WR_ADDR_BEGIN      : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
+    WR_ADDR_BEGIN      : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
     WR_STOP            : IN  std_logic;
     WR_WRAP_AROUND     : IN  std_logic;
     POST_TRIGGER       : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
-    WR_BUSY            : OUT std_logic;    
-    WR_POINTER         : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
-    TRIGGER_POINTER    : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
+    WR_BUSY            : OUT std_logic;
+    WR_POINTER         : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
+    TRIGGER_POINTER    : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
     WR_WRAPPED         : OUT std_logic;
     RD_START           : IN  std_logic;
     RD_ADDR_BEGIN      : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
-    RD_ADDR_END        : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
+    RD_ADDR_END        : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
     RD_BUSY            : OUT std_logic;
     --
     DATA_FIFO_RESET    : IN  std_logic;
@@ -248,7 +248,7 @@ BEGIN
       APP_EN              => app_en,
       APP_WDF_DATA        => app_wdf_data,
       APP_WDF_END         => app_wdf_end,
-      APP_WDF_MASK        => app_wdf_mask,      
+      APP_WDF_MASK        => app_wdf_mask,
       APP_WDF_WREN        => app_wdf_wren,
       APP_RD_DATA         => app_rd_data,
       APP_RD_DATA_END     => app_rd_data_end,

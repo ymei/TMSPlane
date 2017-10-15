@@ -1,21 +1,21 @@
 ----------------------------------------------------------------------------------
 -- Company:  LBNL
 -- Engineer: Yuan Mei
--- 
+--
 -- Create Date: 03/25/2014 07:22:25 PM
--- Design Name: 
+-- Design Name:
 -- Module Name: sdram_buffer_fifo - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
+-- Project Name:
+-- Target Devices:
+-- Tool Versions:
+-- Description:
 --
 -- Interface to Xilinx MIG UI to use external sdram as a buffer for
 -- stream data input and output with fifo interface
 -- Currently read and write are not allowed to happen simultaneously.
 --
--- Dependencies: 
--- 
+-- Dependencies:
+--
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
@@ -72,17 +72,17 @@ ENTITY sdram_buffer_fifo IS
     --
     CTRL_RESET         : IN  std_logic;
     WR_START           : IN  std_logic;
-    WR_ADDR_BEGIN      : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
+    WR_ADDR_BEGIN      : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
     WR_STOP            : IN  std_logic;
     WR_WRAP_AROUND     : IN  std_logic;
     POST_TRIGGER       : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
-    WR_BUSY            : OUT std_logic;    
-    WR_POINTER         : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
-    TRIGGER_POINTER    : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
+    WR_BUSY            : OUT std_logic;
+    WR_POINTER         : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
+    TRIGGER_POINTER    : OUT std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
     WR_WRAPPED         : OUT std_logic;
     RD_START           : IN  std_logic;
     RD_ADDR_BEGIN      : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
-    RD_ADDR_END        : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);    
+    RD_ADDR_END        : IN  std_logic_vector(APP_ADDR_WIDTH-1 DOWNTO 0);
     RD_BUSY            : OUT std_logic;
     --
     DATA_FIFO_RESET    : IN  std_logic;
@@ -202,7 +202,7 @@ ARCHITECTURE Behavioral OF sdram_buffer_fifo IS
   SIGNAL wr_writing             : std_logic        := '0';
   SIGNAL wr_wdf_end             : std_logic        := '0';
   SIGNAL wr_wdf_wren            : std_logic        := '0';
-  
+
 BEGIN
 
   fifo_rst <= RESET OR DATA_FIFO_RESET;
@@ -252,7 +252,7 @@ BEGIN
   outdata_fifo1_rden <= NOT outdata_fifo0_full;
   outdata_fifo0_wren <= NOT outdata_fifo1_empty;
 
-  ------------------------------------------------------------------------------  
+  ------------------------------------------------------------------------------
   -- make sure _pulse's are 1-clk wide, since the inputs are from another clock
   -- domain
   pulse2pulse_rd_start : pulse2pulse
@@ -265,7 +265,7 @@ BEGIN
     PORT MAP (IN_CLK => CLK, OUT_CLK => CLK, RST => RESET, PULSEIN => WR_STOP,
               INBUSY => OPEN, PULSEOUT => wr_stop_pulse);
 
-  ------------------------------------------------------------------------------  
+  ------------------------------------------------------------------------------
   -- register addresses and status
   PROCESS (CLK, RESET, CTRL_RESET)
     VARIABLE addr_tmp : unsigned(trigger_pointer_reg'length-1 DOWNTO 0) := (OTHERS => '0');
@@ -360,7 +360,7 @@ BEGIN
           END IF;
         WHEN W2 =>                      -- hold until cmd is accepted
           wr_app_en   <= '1';
-          write_state <= W2;          
+          write_state <= W2;
           IF APP_RDY = '1' THEN         -- cmd accepted
             wr_app_en   <= '0';
             wr_addr_i   <= wr_addr_i + APP_ADDR_BURST;

@@ -174,6 +174,9 @@ set files [list \
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b_0_support.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/KC705/aurora_64b66b.v"]"\
  "[file normalize "$origin_dir/../src/aurora64b66b/fifo_over_ufc.v"]"\
+ "[file normalize "$origin_dir/../src/sdm_adc_data_aurora_recv.v"]"\
+ "[file normalize "$origin_dir/../src/fifo_rdwidth_reducer.vhd"]"\
+ "[file normalize "$origin_dir/../src/data_sampler_fifo.v"]"\
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -623,6 +626,19 @@ add_files -norecurse -fileset $obj $files
 set obj [get_filesets sources_1]
 set files [list \
  "[file normalize "$origin_dir/../ipcore_dir/KC705/fifo512to128/fifo512to128.xci"]"\
+]
+add_files -norecurse -fileset $obj $files
+
+# Set 'sources_1' fileset file properties for remote files
+# None
+
+# Set 'sources_1' fileset file properties for local files
+# None
+
+# Set 'sources_1' fileset object
+set obj [get_filesets sources_1]
+set files [list \
+ "[file normalize "$origin_dir/../ipcore_dir/KC705/fifo512x/fifo512x.xci"]"\
 ]
 add_files -norecurse -fileset $obj $files
 

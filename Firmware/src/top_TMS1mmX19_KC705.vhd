@@ -369,6 +369,22 @@ ARCHITECTURE Behavioral OF top IS
       DATA_FIFO_RDCLK : OUT std_logic
     );
   END COMPONENT;
+  COMPONENT data_sampler_fifo
+    GENERIC (
+      DIN_WIDTH  : positive := 512;
+      DOUT_WIDTH : positive := 32
+    );
+    PORT (
+      RESET      : IN  std_logic;
+      CLK        : IN  std_logic;
+      DIN        : IN  std_logic_vector(DIN_WIDTH-1 DOWNTO 0);
+      DIN_VALID  : IN  std_logic;
+      DIN_CLK    : IN  std_logic;
+      DOUT       : OUT std_logic_vector(DOUT_WIDTH-1 DOWNTO 0);
+      DOUT_EMPTY : OUT std_logic;
+      DOUT_RDEN  : IN  std_logic
+    );
+  END COMPONENT;
   ---------------------------------------------> UART/RS232
   ---------------------------------------------< SDRAM
   COMPONENT sdram_ddr3
@@ -470,6 +486,26 @@ ARCHITECTURE Behavioral OF top IS
     );
   END COMPONENT;
   ---------------------------------------------> I2C
+  ---------------------------------------------< TMS
+  COMPONENT sdm_adc_data_aurora_recv
+    GENERIC (
+      NCH_ADC : positive := 20;
+      ADC_CYC : positive := 20;
+      NCH_SDM : positive := 19;
+      SDM_CYC : positive := 4
+    );
+    PORT (
+      RESET           : IN  std_logic;
+      CLK             : IN  std_logic;
+      USER_CLK        : IN  std_logic;
+      M_AXI_RX_TDATA  : IN  std_logic_vector(63 DOWNTO 0);
+      M_AXI_RX_TVALID : IN  std_logic;
+      DOUT            : OUT std_logic_vector(511 DOWNTO 0);
+      DOUT_VALID      : OUT std_logic;
+      FIFO_FULL       : OUT std_logic
+    );
+  END COMPONENT;
+  ---------------------------------------------> TMS
   ---------------------------------------------< debug : ILA and VIO (`Chipscope')
   COMPONENT dbg_ila
     PORT (
@@ -537,6 +573,11 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL control_mem_we                    : std_logic;
   SIGNAL control_mem_addr                  : std_logic_vector(31 DOWNTO 0);
   SIGNAL control_mem_din                   : std_logic_vector(31 DOWNTO 0);
+  SIGNAL control_data_fifo_q               : std_logic_vector(31 DOWNTO 0);
+  SIGNAL control_data_fifo_empty           : std_logic;
+  SIGNAL control_data_fifo_rdreq           : std_logic;
+  SIGNAL control_data_fifo_rdclk           : std_logic;
+  SIGNAL control_data_fifo_reset           : std_logic;
   ---------------------------------------------> UART/RS232
   ---------------------------------------------< gtx / aurora
   SIGNAL aurora_reset                      : std_logic;
@@ -690,6 +731,10 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL i2c_sda_t                         : std_logic;
   SIGNAL i2c_scl_out                       : std_logic;
   ---------------------------------------------> I2C
+  ---------------------------------------------< TMS
+  SIGNAL tms_sdm_adc_dout                  : std_logic_vector(511 DOWNTO 0);
+  SIGNAL tms_sdm_adc_dout_valid            : std_logic;
+  ---------------------------------------------< TMS
   ---------------------------------------------< debug
   SIGNAL dbg_ila_probe0                           : std_logic_vector (63 DOWNTO 0);
   SIGNAL dbg_ila_probe1                           : std_logic_vector (79 DOWNTO 0);
@@ -899,10 +944,10 @@ BEGIN
       MEM_DIN         => control_mem_din,
       MEM_DOUT        => (OTHERS => '0'),
       -- Data FIFO interface, FWFT
-      DATA_FIFO_Q     => idata_data_fifo_dout,
-      DATA_FIFO_EMPTY => idata_data_fifo_empty,
-      DATA_FIFO_RDREQ => idata_data_fifo_rden,
-      DATA_FIFO_RDCLK => idata_data_fifo_rdclk
+      DATA_FIFO_Q     => control_data_fifo_q,
+      DATA_FIFO_EMPTY => control_data_fifo_empty,
+      DATA_FIFO_RDREQ => control_data_fifo_rdreq,
+      DATA_FIFO_RDCLK => control_data_fifo_rdclk
     );
   dbg_ila_probe0(18 DOWNTO 3) <= pulse_reg;
   ---------------------------------------------> UART/RS232
@@ -1019,16 +1064,6 @@ BEGIN
         CMD_FIFO_RDCLK       => clk_200MHz
       );
 
-    --pulsegen_inst : pulsegen
-    --  GENERIC MAP (
-    --    COUNTER_WIDTH => 16
-    --  )
-    --  PORT MAP (
-    --    CLK    => sTx_axis_fifo_aclk,
-    --    PERIOD => config_reg(31 DOWNTO 16),
-    --    I      => pulse_reg(0),
-    --    O      => ten_gig_eth_tx_start
-    --  );
     ten_gig_eth_tx_start <= pulse_reg(0);
 
     dbg_ila_probe0(0) <= clk156p25;
@@ -1115,6 +1150,39 @@ BEGIN
     );
   gig_eth_rx_fifo1_rdclk <= gig_eth_tx_fifo1_wrclk;
 
+  sdm_adc_data_aurora_recv_inst : sdm_adc_data_aurora_recv
+    GENERIC MAP (
+      NCH_ADC => 20,
+      ADC_CYC => 20,
+      NCH_SDM => 19,
+      SDM_CYC => 4
+    )
+    PORT MAP (
+      RESET           => reset,
+      CLK             => control_clk,
+      USER_CLK        => aurora_user_clk,
+      M_AXI_RX_TDATA  => aurora_rx_tdata,
+      M_AXI_RX_TVALID => aurora_rx_tvalid,
+      DOUT            => tms_sdm_adc_dout,
+      DOUT_VALID      => tms_sdm_adc_dout_valid,
+      FIFO_FULL       => OPEN
+    );
+  data_sampler_fifo_inst : data_sampler_fifo
+    GENERIC MAP (
+      DIN_WIDTH  => 512,
+      DOUT_WIDTH => 32
+    )
+    PORT MAP (
+      RESET      => control_data_fifo_reset,
+      CLK        => control_clk,
+      DIN        => tms_sdm_adc_dout,
+      DIN_VALID  => tms_sdm_adc_dout_valid,
+      DIN_CLK    => aurora_user_clk,
+      DOUT       => control_data_fifo_q,
+      DOUT_EMPTY => control_data_fifo_empty,
+      DOUT_RDEN  => control_data_fifo_rdreq
+    );
+  control_data_fifo_reset <= reset OR idata_data_fifo_reset;
   -- -- debug
   -- aurora_ufc_tx_req <= pulse_reg(8);
   -- ufc_tx_tvalid_edge_sync_inst : edge_sync
@@ -1136,11 +1204,24 @@ BEGIN
       PROBE0 => dbg_ila1_probe0,
       PROBE1 => dbg_ila1_probe1
     );
-  dbg_ila1_probe0 <=
-    "0000" & gig_eth_rx_fifo_empty & aurora_status(2) & aurora_status(1) & aurora_status(0)
-    & aurora_reset & aurora_ufc_in_progress_n & aurora_ufc_rx_tlast & aurora_ufc_rx_tvalid
-    & aurora_ufc_tx_req & aurora_ufc_tx_tready & aurora_ufc_tx_tvalid & aurora_tx_tready;
-  dbg_ila1_probe1 <= aurora_ufc_rx_tdata(7 DOWNTO 0) & aurora_ufc_tx_tdata(7 DOWNTO 0);
+  -- dbg_ila1_probe0 <=
+  --   "0000" & gig_eth_rx_fifo_empty & aurora_status(2) & aurora_status(1) & aurora_status(0)
+  --   & aurora_reset & aurora_ufc_in_progress_n & aurora_ufc_rx_tlast & aurora_ufc_rx_tvalid
+  --   & aurora_ufc_tx_req & aurora_ufc_tx_tready & aurora_ufc_tx_tvalid & aurora_tx_tready;
+  -- dbg_ila1_probe1 <= aurora_ufc_rx_tdata(7 DOWNTO 0) & aurora_ufc_tx_tdata(7 DOWNTO 0);
+
+  PROCESS (aurora_user_clk, reset) IS
+  BEGIN  -- PROCESS
+    IF reset = '1' THEN
+      dbg_ila1_probe0 <= (OTHERS => '0');
+    ELSIF rising_edge(aurora_user_clk) THEN  -- rising clock edge
+      IF tms_sdm_adc_dout_valid = '1' THEN
+        dbg_ila1_probe0 <= tms_sdm_adc_dout(16*19+15 DOWNTO 16*19);
+      END IF;
+    END IF;
+  END PROCESS;
+  dbg_ila1_probe1 <= aurora_rx_tdata(63 DOWNTO 63-14) & aurora_rx_tvalid;
+
   ---------------------------------------------> gtx / aurora
   ---------------------------------------------< gig_eth
   gig_eth_cores : IF ENABLE_GIG_ETH GENERATE

@@ -33,11 +33,15 @@ set_property -dict {PACKAGE_PIN AE20 IOSTANDARD LVCMOS25} [get_ports SI5324_RSTn
 set_property PACKAGE_PIN L8 [get_ports SI5324CLK_P]
 set_property PACKAGE_PIN L7 [get_ports SI5324CLK_N]
 
-# clock domain interaction
-set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks system_clock]
-set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks user_clock]
-set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks si5324_clock]
-set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks sgmii_clock]
+# clock domain interaction, must explictly specify all possible pairs.
+# Command with only one `-group' parameter means the clock is asynchronous to all other, including generated from its own, clocks.
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks system_clock] -group [get_clocks -include_generated_clocks user_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks system_clock] -group [get_clocks -include_generated_clocks si5324_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks system_clock] -group [get_clocks -include_generated_clocks sgmii_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks user_clock]   -group [get_clocks -include_generated_clocks si5324_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks user_clock]   -group [get_clocks -include_generated_clocks sgmii_clock]
+set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks si5324_clock] -group [get_clocks -include_generated_clocks sgmii_clock]
+
 # seems we ran out of bufg's
 # set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets global_clock_reset_inst/I]
 # false path of resetter

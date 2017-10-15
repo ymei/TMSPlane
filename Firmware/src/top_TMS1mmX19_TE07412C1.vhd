@@ -422,7 +422,8 @@ ARCHITECTURE Behavioral OF top IS
       SDM_OUT1_N    : IN  std_logic_vector(NCH-1 DOWNTO 0);
       SDM_OUT2_P    : IN  std_logic_vector(NCH-1 DOWNTO 0);
       SDM_OUT2_N    : IN  std_logic_vector(NCH-1 DOWNTO 0);
-      DOUT          : OUT std_logic_vector(NCH*2-1 DOWNTO 0)
+      DOUT          : OUT std_logic_vector(NCH*2-1 DOWNTO 0);
+      DOUT_VALID    : OUT std_logic
     );
   END COMPONENT;
   ---------------------------------------------> TMS SDM
@@ -452,6 +453,29 @@ ARCHITECTURE Behavioral OF top IS
       INPUTS_OUT    : OUT std_logic_vector(NCH-1 DOWNTO 0);
       DOUT          : OUT std_logic_vector(NCH*16-1 DOWNTO 0);
       DOUT_VALID    : OUT std_logic
+    );
+  END COMPONENT;
+  COMPONENT sdm_adc_data_aggregator
+    GENERIC (
+      NCH_ADC : positive := 20;
+      ADC_CYC : positive := 20;
+      NCH_SDM : positive := 19;
+      SDM_CYC : positive := 4
+    );
+    PORT (
+      RESET           : IN  std_logic;
+      CLK             : IN  std_logic;
+      ADC_Q           : IN  std_logic_vector(NCH_ADC*16-1 DOWNTO 0);
+      ADC_Q_VALID     : IN  std_logic;
+      SDM_Q           : IN  std_logic_vector(NCH_SDM*2-1 DOWNTO 0);
+      SDM_Q_VALID     : IN  std_logic;
+      DOUT            : OUT std_logic_vector(511 DOWNTO 0);
+      DOUT_VALID      : OUT std_logic;
+      USER_CLK        : IN  std_logic;
+      S_AXI_TX_TDATA  : OUT std_logic_vector(63 DOWNTO 0);
+      S_AXI_TX_TVALID : OUT std_logic;
+      S_AXI_TX_TREADY : IN  std_logic;
+      FIFO_FULL       : OUT std_logic
     );
   END COMPONENT;
   ---------------------------------------------> ADC, external, LTC2325-16
@@ -666,6 +690,9 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL tms_sdm_out2_p                    : std_logic_vector(18 DOWNTO 0);
   SIGNAL tms_sdm_out2_n                    : std_logic_vector(18 DOWNTO 0);
   SIGNAL tms_sdm_out                       : std_logic_vector(37 DOWNTO 0);
+  SIGNAL tms_sdm_out_valid                 : std_logic;
+  SIGNAL tms_sdm_adc_dout                  : std_logic_vector(511 DOWNTO 0);
+  SIGNAL tms_sdm_adc_dout_valid            : std_logic;
   SIGNAL adc_clk_src_sel                   : std_logic;
   SIGNAL adc_clkff_div                     : std_logic_vector(3 DOWNTO 0);
   SIGNAL adc_clk0_lpbk                     : std_logic;
@@ -676,6 +703,7 @@ ARCHITECTURE Behavioral OF top IS
   SIGNAL adc_sdo                           : std_logic_vector(19 DOWNTO 0);
   SIGNAL adc_dout                          : std_logic_vector(20*16-1 DOWNTO 0);
   SIGNAL adc_dout_valid                    : std_logic;
+  SIGNAL sdm_adc_data_aggregator_fifo_full : std_logic;
   ---------------------------------------------> TMS
   ---------------------------------------------< debug
   SIGNAL dbg_ila_probe0                           : std_logic_vector(63 DOWNTO 0);
@@ -734,8 +762,8 @@ BEGIN
       LOCKED     => global_clk_locked,
       CLK_OUT1   => clk_50MHz,
       CLK_OUT2   => OPEN,
-      CLK_OUT3   => OPEN,
-      CLK_OUT4   => clk_200MHz
+      CLK_OUT3   => clk_200MHz,
+      CLK_OUT4   => clk_250MHz
     );
   clk_100MHz <= sys_clk;
 
@@ -1085,7 +1113,28 @@ BEGIN
       full   => aurora_ufc_tx_fifo_full,
       empty  => cmd_fifo_empty
     );
-
+  sdm_adc_data_aggregator_inst : sdm_adc_data_aggregator
+    GENERIC MAP (
+      NCH_ADC => 20,
+      ADC_CYC => 20,
+      NCH_SDM => 19,
+      SDM_CYC => 4
+    )
+    PORT MAP (
+      RESET           => reset,
+      CLK             => control_clk,
+      ADC_Q           => adc_dout,
+      ADC_Q_VALID     => adc_dout_valid,
+      SDM_Q           => tms_sdm_out,
+      SDM_Q_VALID     => tms_sdm_out_valid,
+      DOUT            => tms_sdm_adc_dout,
+      DOUT_VALID      => tms_sdm_adc_dout_valid,
+      USER_CLK        => aurora_user_clk,
+      S_AXI_TX_TDATA  => aurora_tx_tdata,
+      S_AXI_TX_TVALID => aurora_tx_tvalid,
+      S_AXI_TX_TREADY => aurora_tx_tready,
+      FIFO_FULL       => sdm_adc_data_aggregator_fifo_full
+    );
   -- -- debug
   -- aurora_ufc_tx_req <= pulse_reg(8);
   -- ufc_tx_tvalid_edge_sync_inst : edge_sync
@@ -1111,7 +1160,9 @@ BEGIN
   --   "00000" & aurora_status(2) & aurora_status(1) & aurora_status(0)
   --   & aurora_reset & aurora_ufc_in_progress_n & aurora_ufc_rx_tlast & aurora_ufc_rx_tvalid
   --   & aurora_ufc_tx_req & aurora_ufc_tx_tready & aurora_ufc_tx_tvalid & aurora_tx_tready;
+  dbg_ila1_probe0 <= tms_sdm_adc_dout(16*19+15 DOWNTO 16*19);
   -- dbg_ila1_probe1 <= aurora_ufc_rx_tdata(7 DOWNTO 0) & aurora_ufc_tx_tdata(7 DOWNTO 0);
+  dbg_ila1_probe1 <= aurora_tx_tdata(63 DOWNTO 63-12) & sdm_adc_data_aggregator_fifo_full & aurora_tx_tvalid & aurora_tx_tready;
   ---------------------------------------------> gtx / aurora
   ---------------------------------------------< I2C
   i2c_sda_iobuf_inst : IOBUF
@@ -1319,7 +1370,8 @@ BEGIN
       SDM_OUT1_N    => tms_sdm_out1_n,
       SDM_OUT2_P    => tms_sdm_out2_p,
       SDM_OUT2_N    => tms_sdm_out2_n,
-      DOUT          => tms_sdm_out
+      DOUT          => tms_sdm_out,
+      DOUT_VALID    => tms_sdm_out_valid
     );
   tms_sdm_out1_p <= (
     0  => B12_L_P(18),
@@ -1483,10 +1535,10 @@ BEGIN
     19 => B13_L_N(1)
   );
   --
-  dbg_ila1_probe0 <= adc_dout(16*19+15 DOWNTO 16*19);
-  dbg_ila1_probe1 <= tms_sdm_out(5 DOWNTO 0) & tms_sdm_clk_lpbk & tms_sck
-                     & i2c1_sda_in & i2c1_sda_out & i2c1_scl_out & adc_dout_valid
-                     & adc_cnv_n & adc_clk0_lpbk & adc_sdo(19) & adc_sdo(0);
+  -- dbg_ila1_probe0 <= adc_dout(16*19+15 DOWNTO 16*19);
+  -- dbg_ila1_probe1 <= tms_sdm_out(3 DOWNTO 0) & tms_sdm_out_valid & tms_sdm_clk_lpbk & '0' & sdm_adc_data_aggregator_fifo_full
+  --                    & i2c1_sda_in & i2c1_scl_out & tms_sck & adc_dout_valid
+  --                    & adc_cnv_n & adc_clk0_lpbk & adc_sdo(19) & adc_sdo(0);
   ---------------------------------------------> TMS
 
   -- clock output

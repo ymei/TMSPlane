@@ -3,6 +3,12 @@
 //% @author Yuan Mei
 //%
 //% @param[in] NCH total number of ADC channels
+//%
+//% Relative time (phase) relation between cnv_n and clkff is
+//% critical.  One can swap D1, D2 bits in ODDR to achieve half-CLK
+//% shift, or change the cnt condition number between 2 and 3 for
+//% adc_clkff_oe to achieve 1-CLK shift.  set_output_delay in .xdc must
+//% be commensurate.
 
 `timescale 1ns / 1ps
 
@@ -29,20 +35,22 @@ module adc_cnv_sipo
     input [NCH-1:0]         INPUTS_P,
     input [NCH-1:0]         INPUTS_N,
     output [NCH-1:0]        INPUTS_OUT,
+    (* ASYNC_REG = "TRUE" *)
     output reg [NCH*16-1:0] DOUT,
     output reg              DOUT_VALID
     );
 
    localparam iodelay_group_name  = "tms_iodelay_grp";
-   reg                 adc_cnv_n;
-   reg                 adc_sample_n;
-   wire [NCH-1:0]      adc_sdin_v;
-   wire                adc_clkff_tmp, adc_clkff_tmp1;
-   wire                adc_clk_lpbk;
-   reg                 adc_clkff_oe;
-   reg [4:0]           cnt;
-   reg [3:0]           idx;
-   reg [15:0]          sdo_v[NCH-1:0];
+   reg            adc_cnv_n;
+   reg            adc_sample_n;
+   wire [NCH-1:0] adc_sdin_v;
+   wire           adc_clkff_tmp, adc_clkff_tmp1;
+   (* KEEP = "TRUE" *)
+   wire           adc_clk_lpbk;
+   reg            adc_clkff_oe;
+   reg [4:0]      cnt;
+   reg [3:0]      idx;
+   reg [15:0]     sdo_v[NCH-1:0];
 
    (* IODELAY_GROUP = iodelay_group_name *) // Specifies group name for associated IDELAYs/ODELAYs and IDELAYCTRL
    IDELAYCTRL adc_idelayctrl_inst
@@ -99,8 +107,8 @@ module adc_cnv_sipo
       .Q(adc_clkff_tmp1),   // 1-bit DDR output
       .C(adc_clkff_tmp),    // 1-bit clock input
       .CE(1), // 1-bit clock enable input
-      .D1(1), // 1-bit data input (positive edge)
-      .D2(0), // 1-bit data input (negative edge)
+      .D1(0), // 1-bit data input (positive edge)
+      .D2(1), // 1-bit data input (negative edge)
       .R(~adc_clkff_oe), // 1-bit reset
       .S(0)              // 1-bit set
       );
@@ -152,7 +160,7 @@ module adc_cnv_sipo
             adc_sample_n <= 1;
          end
          adc_clkff_oe <= 1;
-         if ((0<=cnt && cnt<2) || cnt>=2+16) begin
+         if ((0<=cnt && cnt<3) || cnt>=3+16) begin // Adjust the number (2 or 3) to satisfy the external time delay.
             adc_clkff_oe <= 0;
          end
       end
@@ -163,6 +171,7 @@ module adc_cnv_sipo
    always @ (posedge CLK or posedge RESET) begin
       if (RESET) begin
          adc_sample_n_prev <= 0;
+         DOUT_VALID        <= 0;
       end
       else begin
          adc_sample_n_prev <= adc_sample_n;
@@ -176,17 +185,24 @@ module adc_cnv_sipo
    genvar i;
    generate
       for (i=0; i<NCH; i=i+1) begin
-         always @ (posedge adc_clk_lpbk or posedge adc_sample_n) begin
-            if (adc_sample_n) begin
-               idx <= 15;
+         always @ (posedge adc_clk_lpbk or posedge adc_sample_n or posedge RESET) begin
+            if (RESET) begin
+               sdo_v[i] <= 0;
             end
             else begin
-               sdo_v[i][idx] <= adc_sdin_v[i];
-               idx           <= idx - 1;
+               if (adc_sample_n) begin
+                  idx <= 15;
+               end
+               else begin
+                  sdo_v[i][idx] <= adc_sdin_v[i];
+                  idx           <= idx - 1;
+               end
             end
          end
+         // sample in CLK domain
          always @ (posedge CLK or posedge RESET) begin
             if (RESET) begin
+               DOUT[16*i+15:16*i] <= 0;
             end
             else begin
                if (adc_sample_n_prev == 0 && adc_sample_n == 1) begin // rising edge
