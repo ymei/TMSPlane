@@ -61,7 +61,7 @@ When pcs_pma core is updated, open its example design and compare to the source 
 ```
 In iMPACT, select BPI Flash Configure Single FPGA
 Kintex7 128M, MCS, x16, no extra data
-BPI PROM, 28F00AP30, 16 bit, RS Pins to 25:24
+BPI PROM, 28F00AP30T, 16 bit, RS Pins to 25:24
 Erase before programming
 
 Mode switch: M2 M1 M0
@@ -78,10 +78,16 @@ Pull-none, RS Pins 25:24
 * 32 MByte QSPI Flash memory, Cypress S25FL256SAGBHI20, 3.3V.
 * Do not erase nonvolatile QE (Quad Enable) bit on the TE0741 serial flash!  FPGA boot is supported only in 4 bit mode with QE enabled.
 ```
-write_cfgmem -format MCS -size 128 -interface SPIx4 -loadbit "up 0x0 top.runs/impl_1/top.bit" -file "../target/TE0741.mcs"
+write_cfgmem -format MCS -size 256 -interface SPIx4 -loadbit "up 0x0 top.runs/impl_1/top.bit" -file "../target/TE0741.mcs"
 ```
 
 ## Register map
+### KC705
+| ```config_reg``` | Value composition                                       | Comment |
+| ----------------:| ------------------------------------------------------- | ------- |
+| ```pulse_reg```  |                                                         |         |
+| 2                | idata_data_fifo_reset                                   |         |
+
 ### TE0741
 | ```config_reg``` | Value composition                                       | Comment |
 | ----------------:| ------------------------------------------------------- | ------- |

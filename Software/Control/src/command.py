@@ -1,5 +1,6 @@
 from __future__ import print_function
 from ctypes import *
+import socket
 
 class Cmd(object):
     soname = "./build/command.so"
@@ -28,6 +29,12 @@ class Cmd(object):
         n = cfun(byref(c_void_p(buf)), c_uint(addr), (c_uint32 * nval)(*aval), c_size_t(nval))
         return self.buf.raw[0:n]
 
+    def write_file_to_memory(self, fName):
+        cfun = self.cmdGen.cmd_write_file_to_memory
+        buf = addressof(self.buf)
+        n = cfun(byref(c_void_p(buf)), c_char_p(fName))
+        return self.buf.raw[0:n]
+
     def read_memory(self, addr, val):
         cfun = self.cmdGen.cmd_read_memory
         buf = addressof(self.buf)
@@ -46,20 +53,61 @@ class Cmd(object):
         n = cfun(byref(c_void_p(buf)), c_uint(addr))
         return self.buf.raw[0:n]
 
+    ## Generate command for reading data from datafifo
+    # @param[in] val number of 32-bit words (val+1) to read
+    #
     def read_datafifo(self, val):
         cfun = self.cmdGen.cmd_read_datafifo
         buf = addressof(self.buf)
         n = cfun(byref(c_void_p(buf)), c_uint(val))
         return self.buf.raw[0:n]
 
-    def write_memory_file(self, file_name):
-        cfun = self.cmdGen.cmd_write_memory_file
-        buf = addressof(self.buf)
-        n = cfun(byref(c_void_p(buf)), c_char_p(file_name))
-        return self.buf.raw[0:n]
+    ## Acquire data from datafifo
+    # @param[in] s an established socket for IO
+    # @param[in] nWords number of 32-bit words to read
+    # @param[in] buf if buffer is given, recv_into is called and buf is returned
+    #
+    def acquire_from_datafifo(self, s, nWords, buf=None, recvFlags=socket.MSG_WAITALL):
+        nWordsBatchMax = 65536
+        if nWords < 1:
+            return []
+        nRounds    = int(nWords / nWordsBatchMax)
+        nRemainder = nWords % nWordsBatchMax
+        if buf:
+            mv = memoryview(buf)
+        ret = ""
+        for iBatch in xrange(nRounds):
+            cmdStr = self.read_datafifo(nWordsBatchMax-1)
+            s.sendall(cmdStr)
+            toRead = nWordsBatchMax * 4
+            if buf:
+                while toRead:
+                    nBytes = s.recv_into(mv, toRead)
+                    mv = mv[nBytes:]
+                    toRead -= nBytes
+            else:
+                ret = ret + s.recv(toRead, recvFlags)
+        #
+        if nRemainder == 0:
+            if buf:
+                return buf
+            else:
+                return ret
+        # else
+        cmdStr = self.read_datafifo(nRemainder-1)
+        s.sendall(cmdStr)
+        toRead = nRemainder * 4
+        if buf:
+            while toRead:
+                nBytes = s.recv_into(mv, toRead)
+                mv = mv[nBytes:]
+                toRead -= nBytes
+            return buf
+        else:
+            ret = ret + s.recv(toRead, recvFlags)
+            return ret
 
 if __name__ == "__main__":
     cmd = Cmd()
     ret = cmd.write_register(1, 0x5a5a)
     print([hex(ord(s)) for s in ret])
-
