@@ -157,7 +157,7 @@ class LTC2990(object):
         time.sleep(self.rwDelay)
         cmdStr = cmd.read_status(self.rdDataRegAddr)
         s.sendall(cmdStr)
-        ret = s.recv(4)
+        ret = s.recv(4, socket.MSG_WAITALL)
         return [ord(c) for c in ret[2:]]
 
     def read_all_registers(self, s):
@@ -224,23 +224,22 @@ def tms_sio_rw(s, cmd, colAddr, dout, clkDiv=7, dcfgBase=5, dstatBase=1, pulseRe
     s.sendall(cmdStr)
 #    print(":".join("{:02x}".format(ord(c)) for c in cmdStr))
     # readback
-    time.sleep(0.2)
+    time.sleep(0.1)
     cmdStr = ""
     for i in xrange(9):
         cmdStr += cmd.read_status(8-i + dstatBase)
     s.sendall(cmdStr)
-    retw = s.recv(4*9)
+    retw = s.recv(4*9, socket.MSG_WAITALL)
     ret = 0
     for i in xrange(9):
         ret = ret | ( int(ord(retw[i*4+2])) << ((8-i) * 16 + 8) |
                       int(ord(retw[i*4+3])) << ((8-i) * 16))
     ret = ret & 0x3ffffffffffffffffffffffffffffffff
-    print("Return: 0x{:0x}".format(ret))
     return ret
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1025", help="main control system ipaddr and port")
     args = parser.parse_args()
 
@@ -255,7 +254,7 @@ if __name__ == "__main__":
     s.sendall(dac8568.set_voltage(0, 1.207))
     s.sendall(dac8568.set_voltage(1, 1.024))
     s.sendall(dac8568.set_voltage(2, 1.65))
-    time.sleep(0.1)
+    time.sleep(0.001)
 #
     ltc2990a = LTC2990(cmd, 0x4c) # current monitor
     ltc2990a.set_vdiff_measurement(s)
@@ -276,10 +275,6 @@ if __name__ == "__main__":
     sdmTest = False
 
     tms1mmReg = TMS1mmReg()
-    tms1mmReg.set_power_down(0, 0)
-    tms1mmReg.set_power_down(1, 1) # AOUT2_CSA PD
-    tms1mmReg.set_power_down(2, 1)
-    tms1mmReg.set_power_down(3, 1)
 
     if bufferTest:
         tms1mmReg.set_k(0, 0) # 0 - K1 is open, disconnect CSA output
@@ -300,7 +295,13 @@ if __name__ == "__main__":
 
     tms1mmReg.set_k(6, 0) # 1 - K7 BufferX2 output to AOUT_BufferX2
     tms1mmReg.set_k(7, 1) # 1 - K8 CSA out to AOUT1_CSA
-    tms1mmReg.set_k(9, 0) # 1 - K10 CSA out to AOUT2_CSA that drives 50Ohm
+    tms1mmReg.set_k(8, 0) # 1 - K9 CSA out to AOUT2_CSA that drives 50Ohm
+
+    tms1mmReg.set_power_down(0, 0)
+    tms1mmReg.set_power_down(1, 1) # AOUT2_CSA PD
+    tms1mmReg.set_power_down(2, 1)
+    tms1mmReg.set_power_down(3, 1)
+
     tms1mmReg.set_dac(0, tms1mmReg.dac_volt2code(1.379)) # VBIASN R45
     tms1mmReg.set_dac(1, tms1mmReg.dac_volt2code(1.546)) # VBIASP R47
     tms1mmReg.set_dac(2, tms1mmReg.dac_volt2code(1.626)) # VCASN  R29

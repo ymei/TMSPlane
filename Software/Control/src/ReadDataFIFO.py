@@ -39,7 +39,7 @@ def demux_fifodata(fData, adcVoffset=1.024, adcLSB=62.5e-6):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1024", help="main control system ipaddr and port")
     args = parser.parse_args()
 

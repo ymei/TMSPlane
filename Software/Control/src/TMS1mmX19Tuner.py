@@ -34,20 +34,29 @@ class CommonData(object):
         self.cmd = cmd
         self.dataSocket = dataSocket
         self.ctrlSocket = ctrlSocket
+        self.dataFName = ["adc.dat", "sdm.dat"]
         # number of chips
         self.nCh = 19
         self.nAdcCh = 20
+        self.adcSdmCycRatio = 5
         self.nSamples = nSamples
         self.nWords = 512/32 * self.nSamples
         # adc sampling interval in us
         self.adcDt = 0.2
         self.adcData = [[0 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
+        self.sdmData = [[0 for i in xrange(self.nSamples*self.adcSdmCycRatio)]
+                           for j in xrange(self.nCh*2)]
         # size equals FPGA internal data fifo size
         self.sampleBuf = bytearray(4 * self.nWords)
         # number of voltages in a sensor to control
         self.nVolts = 6
         # update time interval (second)
         self.tI = 0.5
+        #
+        self.x2gain = 2
+        self.bufferTest = 0
+        self.sdmMode = 0 # 0 : disabled, 1 : normal operation, 2 : test with signal injection
+        self.aoutBuf = 0 # 0 : AOUT1, 1 : AOUT2, >1 : disable both
         #
         self.voltsNames = ['VBIASN', 'VBIASP', 'VCASN', 'VCASP', 'VDIS', 'VREF']
         self.cv = threading.Condition() # condition variable
@@ -73,7 +82,9 @@ class DataPanelGUI(object):
     def __init__(self, master, cd, dataFigSize=(13, 12.5)):
         self.master = master
         self.cd = cd
-        self.nCh = self.cd.nAdcCh
+        self.nAdcCh = self.cd.nAdcCh
+        self.nSdmCh = self.cd.nCh
+        self.adcSdmCycRatio = self.cd.adcSdmCycRatio
 
         self.master.wm_title("Topmetal-S 1mm version x19 array data")
         # appropriate quitting
@@ -86,9 +97,9 @@ class DataPanelGUI(object):
         self.dataPlotsFigure = Figure(figsize=dataFigSize, dpi=72)
         self.dataPlotsFigure.subplots_adjust(left=0.1, right=0.98, top=0.98, bottom=0.05, hspace=0, wspace=0)
         # x-axis is shared
-        dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(self.nCh, 1, self.nCh, xlabel='t [us]', ylabel='[V]')
-        self.dataPlotsSubplots = [self.dataPlotsFigure.add_subplot(self.nCh, 1, i+1, sharex=dataPlotsSubplotN)
-                                  for i in xrange(self.nCh-1)]
+        dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(self.nAdcCh, 1, self.nAdcCh, xlabel='t [us]', ylabel='[V]')
+        self.dataPlotsSubplots = [self.dataPlotsFigure.add_subplot(self.nAdcCh, 1, i+1, sharex=dataPlotsSubplotN)
+                                  for i in xrange(self.nAdcCh-1)]
         for a in self.dataPlotsSubplots:
             artist.setp(a.get_xticklabels(), visible=False)
         self.dataPlotsSubplots.append(dataPlotsSubplotN)
@@ -126,8 +137,9 @@ class DataPanelGUI(object):
         self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
         time.sleep(0.1)
         buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-        self.demux_fifodata(buf, self.cd.adcData)
+        self.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
         self.plot_data()
+        self.save_data(self.cd.dataFName)
 
     def plot_data(self):
         # self.dataPlotsFigure.clf(keep_observers=True)
@@ -152,10 +164,9 @@ class DataPanelGUI(object):
         self.dataPlotsToolbar.update()
         return
 
-    def demux_fifodata(self, fData, ary=None, adcVoffset=1.024, adcLSB=62.5e-6):
+    def demux_fifodata(self, fData, adcData=None, sdmData=None, adcVoffset=1.024, adcLSB=62.5e-6):
         wWidth = 512
         bytesPerSample = wWidth / 8
-        nADCs = self.nCh
         if type(fData[0]) == str:
             fD = bytearray(fData)
         else:
@@ -163,19 +174,45 @@ class DataPanelGUI(object):
         if len(fD) % bytesPerSample != 0:
             return []
         nSamples = len(fD) / bytesPerSample
-        if ary == None:
-            ary = [[0 for i in xrange(nSamples)] for j in xrange(nADCs)]
+        if adcData == None:
+            adcData = [[0 for i in xrange(nSamples)] for j in xrange(self.nAdcCh)]
+        if sdmData == None:
+            sdmData = [[0 for i in xrange(nSamples*self.adcSdmCycRatio)]
+                          for j in xrange(self.nSdmCh*2)]
         for i in xrange(nSamples):
-            for j in xrange(nADCs):
+            for j in xrange(self.nAdcCh):
                 idx0 = bytesPerSample - 1 - j*2
                 v = ( fD[i * bytesPerSample + idx0 - 1] << 8
                     | fD[i * bytesPerSample + idx0])
                 # convert to signed int
                 v = (v ^ 0x8000) - 0x8000
                 # convert to actual volts
-                ary[j][i] = v * adcLSB + adcVoffset
+                adcData[j][i] = v * adcLSB + adcVoffset
+            b0 = self.nAdcCh*2
+            for j in xrange(self.adcSdmCycRatio*self.nSdmCh*2):
+                bi = bytesPerSample - 1 - b0 - int(j / 8)
+                bs = j % 8
+                ss = int(j / (self.nSdmCh*2))
+                ch = j % (self.nSdmCh*2)
+                sdmData[ch][i*self.adcSdmCycRatio + ss] = (fD[i * bytesPerSample + bi] >> bs) & 0x1
+        #
+        return adcData
 
-        return ary
+    def save_data(self, fNames):
+        with open(fNames[0], 'w') as fp:
+            fp.write("# 5Msps ADC\n")
+            nSamples = len(self.cd.adcData[0])
+            for i in xrange(nSamples):
+                for j in xrange(len(self.cd.adcData)):
+                    fp.write(" {:9.6f}".format(self.cd.adcData[j][i]))
+                fp.write("\n")
+        with open(fNames[1], 'w') as fp:
+            fp.write("# 25Msps SDM\n")
+            nSamples = len(self.cd.sdmData[0])
+            for i in xrange(nSamples):
+                for j in xrange(len(self.cd.sdmData)):
+                    fp.write(" {:1d}".format(self.cd.sdmData[j][i]))
+                fp.write("\n")
 
 class ControlPanelGUI(object):
 
@@ -341,7 +378,10 @@ class SensorConfig(threading.Thread):
     def set_global_defaults(self):
         tms_pwr_on          = 1
         tms_sdm_clk_src_sel = 0 # 0: FPGA, 1: external
-        tms_sdm_clkff_div   = 0 #2 # /2**x, 0 disables clock
+        if self.cd.sdmMode:
+            tms_sdm_clkff_div = 2 # /2**x, 0 disables clock
+        else:
+            tms_sdm_clkff_div = 0
         adc_clk_src_sel     = 0
         adc_clkff_div       = 0
         adc_sdrn_ddr        = 0 # 0: sdr, 1: ddr
@@ -376,35 +416,47 @@ class SensorConfig(threading.Thread):
         time.sleep(0.001)
 
     def get_config_vector_for_sensor(self, iSensor):
-        x2gain = 2
-        bufferTest = False
-        sdmTest = False
 
-        self.tms1mmReg.set_power_down(0, 0)
-        self.tms1mmReg.set_power_down(1, 1) # AOUT2_CSA PD
-        self.tms1mmReg.set_power_down(2, 1)
-        self.tms1mmReg.set_power_down(3, 1)
-
-        if bufferTest:
+        if self.cd.bufferTest:
             self.tms1mmReg.set_k(0, 0) # 0 - K1 is open, disconnect CSA output
             self.tms1mmReg.set_k(1, 1) # 1 - K2 is closed, allow BufferX2_testIN to inject signal
             self.tms1mmReg.set_k(4, 0) # 0 - K5 is open, disconnect SDM loads
             self.tms1mmReg.set_k(6, 1) # 1 - K7 is closed, BufferX2 output to AOUT_BufferX2
-        if x2gain == 2:
+            self.tms1mmReg.set_power_down(3, 0) # Power on AOUT_BufferX2
+        else:
+            self.tms1mmReg.set_k(0, 1) # 1 - K1 is closed, connect CSA output to buffer
+            self.tms1mmReg.set_k(1, 0) # 0 - K2 is open,
+            self.tms1mmReg.set_k(6, 1) # 1 - K7 is open
+            self.tms1mmReg.set_power_down(3, 1) # Power down AOUT_BufferX2
+
+        if self.cd.x2gain == 2:
             self.tms1mmReg.set_k(2, 1) # 1 - K3 is closed, K4 is open, setting gain to X2
             self.tms1mmReg.set_k(3, 0)
         else:
             self.tms1mmReg.set_k(2, 0)
             self.tms1mmReg.set_k(3, 1)
-        if sdmTest:
+
+        if self.cd.sdmMode == 2:   # test mode
             self.tms1mmReg.set_k(4, 0)
             self.tms1mmReg.set_k(5, 1)
-        else:
+        elif self.cd.sdmMode == 1: # normal operation
+            self.tms1mmReg.set_k(0, 1) # 1 - K1 is closed, connect CSA output to buffer
+            self.tms1mmReg.set_k(4, 1)
+            self.tms1mmReg.set_k(5, 0)
+        else:                      # disabled
+            self.tms1mmReg.set_k(4, 0)
             self.tms1mmReg.set_k(5, 0)
 
-        self.tms1mmReg.set_k(6, 0) # 1 - K7 BufferX2 output to AOUT_BufferX2
-        self.tms1mmReg.set_k(7, 1) # 1 - K8 CSA out to AOUT1_CSA
-        self.tms1mmReg.set_k(9, 0) # 1 - K10 CSA out to AOUT2_CSA that drives 50Ohm
+        if self.cd.aoutBuf == 0:
+            self.tms1mmReg.set_power_down(0, 0) # AOUT1_CSA PD
+            self.tms1mmReg.set_power_down(1, 1) # AOUT2_CSA PD
+            self.tms1mmReg.set_k(7, 1)          # 1 - K8 CSA out to AOUT1_CSA
+        elif self.cd.aoutBuf == 1:
+            self.tms1mmReg.set_power_down(0, 1) # AOUT1_CSA PD
+            self.tms1mmReg.set_power_down(1, 0) # AOUT2_CSA PD
+            self.tms1mmReg.set_k(8, 1)          # 1 - K9 CSA out to AOUT2_CSA that drives 50Ohm
+        self.tms1mmReg.set_power_down(2, 1)
+
         self.tms1mmReg.set_dac(0, self.cd.sensorVcodes[iSensor][0]) # VBIASN
         self.tms1mmReg.set_dac(1, self.cd.sensorVcodes[iSensor][1]) # VBIASP
         self.tms1mmReg.set_dac(2, self.cd.sensorVcodes[iSensor][2]) # VCASN
@@ -420,7 +472,9 @@ class SensorConfig(threading.Thread):
         print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
         for i in sensorsInChain:
             data = self.get_config_vector_for_sensor(i)
-            TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
+            print("Send  : 0x{:0x}".format(data))
+            ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
+            print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
         # tms reset and load register
         self.s.sendall(self.cd.cmd.send_pulse(1<<0))
 
@@ -429,9 +483,14 @@ class SensorConfig(threading.Thread):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-d", "--data-ip-port", type=str, default="192.168.2.3:1024", help="data source ipaddr and port")
     parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1025", help="control system ipaddr and port")
+    parser.add_argument("-a", "--aout-buf", type=int, default="1", help="AOUT buffer select, 0:AOUT1, 1:AOUT2, >1:disable both")
+    parser.add_argument("-g", "--bufferx2-gain", type=int, default="2", help="BufferX2 gain")
+    parser.add_argument("-s", "--sdm-mode", type=int, default="0", help="SDM working mode, 0:disabled, 1:normal operation, 2:test with signal injection")
+    parser.add_argument("-t", "--buffer-test", type=int, default="0", help="Buffer test")
+    #
     args = parser.parse_args()
 
     dataIpPort = args.data_ip_port.split(':')
@@ -444,6 +503,10 @@ if __name__ == "__main__":
 
     cmd = Cmd()
     cd = CommonData(cmd, dataSocket=sD, ctrlSocket=sC)
+    cd.aoutBuf = args.aout_buf
+    cd.x2gain = args.bufferx2_gain
+    cd.sdmMode = args.sdm_mode
+    cd.bufferTest = args.buffer_test
     sensorConfig = SensorConfig(cd)
 
     root = tk.Tk()
