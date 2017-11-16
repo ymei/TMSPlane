@@ -7,10 +7,12 @@
 
 from __future__ import print_function
 import math,sys,time,os,shutil
-import copy
+import array,copy
+import ctypes
 import socket
 import argparse
 from command import *
+from sigproc import *
 import TMS1mmX19Config
 
 if sys.version_info[0] < 3:
@@ -29,7 +31,8 @@ from matplotlib import artist
 
 class CommonData(object):
 
-    def __init__(self, cmd, dataSocket=None, ctrlSocket=None, nSamples=16384, tms1mmReg=TMS1mmX19Config.TMS1mmReg()):
+    def __init__(self, cmd=Cmd(), dataSocket=None, ctrlSocket=None, nSamples=16384,
+                 tms1mmReg=TMS1mmX19Config.TMS1mmReg(), sigproc=None):
 
         self.cmd = cmd
         self.dataSocket = dataSocket
@@ -41,11 +44,13 @@ class CommonData(object):
         self.adcSdmCycRatio = 5
         self.nSamples = nSamples
         self.nWords = 512/32 * self.nSamples
+        # signal processor
+        if (not sigproc):
+            self.sigproc = SigProc(self.nSamples, self.nAdcCh, self.nCh, self.adcSdmCycRatio)
         # adc sampling interval in us
         self.adcDt = 0.2
-        self.adcData = [[0 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
-        self.sdmData = [[0 for i in xrange(self.nSamples*self.adcSdmCycRatio)]
-                           for j in xrange(self.nCh*2)]
+        self.adcData = self.sigproc.generate_adcDataBuf() # ((ctypes.c_float * self.nSamples) * self.nAdcCh)()
+        self.sdmData = self.sigproc.generate_sdmDataBuf() # ((ctypes.c_byte * (self.nSamples*self.adcSdmCycRatio)) * (self.nCh*2))()
         # size equals FPGA internal data fifo size
         self.sampleBuf = bytearray(4 * self.nWords)
         # number of voltages in a sensor to control
@@ -137,9 +142,11 @@ class DataPanelGUI(object):
         self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
         time.sleep(0.1)
         buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-        self.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
+        self.cd.sigproc.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
+        # self.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
         self.plot_data()
-        self.save_data(self.cd.dataFName)
+        # self.save_data(self.cd.dataFName)
+        self.cd.sigproc.save_data(self.cd.dataFName, self.cd.adcData, self.cd.sdmData)
 
     def plot_data(self):
         # self.dataPlotsFigure.clf(keep_observers=True)
@@ -159,7 +166,7 @@ class DataPanelGUI(object):
             a.locator_params(axis='y', tight=True, nbins=4)
             a.yaxis.set_major_formatter(FormatStrFormatter('%7.4f'))
             a.set_xlim([0.0, self.cd.adcDt * nSamples])
-            a.step(x, self.cd.adcData[i], where='post')
+            a.step(x, array.array('f', self.cd.adcData[i]), where='post')
         self.dataPlotsCanvas.show()
         self.dataPlotsToolbar.update()
         return
@@ -175,10 +182,9 @@ class DataPanelGUI(object):
             return []
         nSamples = len(fD) / bytesPerSample
         if adcData == None:
-            adcData = [[0 for i in xrange(nSamples)] for j in xrange(self.nAdcCh)]
+            adcData = ((ctypes.c_float * nSamples) * self.nAdcCh)()
         if sdmData == None:
-            sdmData = [[0 for i in xrange(nSamples*self.adcSdmCycRatio)]
-                          for j in xrange(self.nSdmCh*2)]
+            sdmData = ((ctypes.c_byte * (nSamples*self.adcSdmCycRatio)) * (self.nSdmCh*2))()
         for i in xrange(nSamples):
             for j in xrange(self.nAdcCh):
                 idx0 = bytesPerSample - 1 - j*2
@@ -199,15 +205,16 @@ class DataPanelGUI(object):
         return adcData
 
     def save_data(self, fNames):
+        timeStamp = int(time.time())
         with open(fNames[0], 'w') as fp:
-            fp.write("# 5Msps ADC\n")
+            fp.write("# TimeStamp: 0x{:016x} 5Msps ADC\n".format(timeStamp))
             nSamples = len(self.cd.adcData[0])
             for i in xrange(nSamples):
                 for j in xrange(len(self.cd.adcData)):
                     fp.write(" {:9.6f}".format(self.cd.adcData[j][i]))
                 fp.write("\n")
         with open(fNames[1], 'w') as fp:
-            fp.write("# 25Msps SDM\n")
+            fp.write("# TimeStamp: 0x{:016x} 25Msps SDM\n".format(timeStamp))
             nSamples = len(self.cd.sdmData[0])
             for i in xrange(nSamples):
                 for j in xrange(len(self.cd.sdmData)):
@@ -426,7 +433,7 @@ class SensorConfig(threading.Thread):
         else:
             self.tms1mmReg.set_k(0, 1) # 1 - K1 is closed, connect CSA output to buffer
             self.tms1mmReg.set_k(1, 0) # 0 - K2 is open,
-            self.tms1mmReg.set_k(6, 1) # 1 - K7 is open
+            self.tms1mmReg.set_k(6, 0) # 0 - K7 is open
             self.tms1mmReg.set_power_down(3, 1) # Power down AOUT_BufferX2
 
         if self.cd.x2gain == 2:

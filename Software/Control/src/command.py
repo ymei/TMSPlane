@@ -65,7 +65,7 @@ class Cmd(object):
     ## Acquire data from datafifo
     # @param[in] s an established socket for IO
     # @param[in] nWords number of 32-bit words to read
-    # @param[in] buf if buffer is given, recv_into is called and buf is returned
+    # @param[in] buf a bytearray.  If buf is given, recv_into() this buf is used and buf is returned
     #
     def acquire_from_datafifo(self, s, nWords, buf=None, recvFlags=socket.MSG_WAITALL):
         nWordsBatchMax = 65536
