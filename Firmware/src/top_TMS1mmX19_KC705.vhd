@@ -43,7 +43,7 @@ ENTITY top IS
     BTN5Bit          : IN    std_logic_vector(4 DOWNTO 0);
     USER_SMA_CLOCK_P : OUT   std_logic;
     USER_SMA_CLOCK_N : OUT   std_logic;
-    USER_SMA_GPIO_P  : OUT   std_logic;
+    USER_SMA_GPIO_P  : IN    std_logic;
     USER_SMA_GPIO_N  : OUT   std_logic;
     SI5324_RSTn      : OUT   std_logic;
     -- UART via usb
@@ -377,6 +377,7 @@ ARCHITECTURE Behavioral OF top IS
     PORT (
       RESET      : IN  std_logic;
       CLK        : IN  std_logic;
+      TRIG       : IN  std_logic;
       DIN        : IN  std_logic_vector(DIN_WIDTH-1 DOWNTO 0);
       DIN_VALID  : IN  std_logic;
       DIN_CLK    : IN  std_logic;
@@ -1175,6 +1176,7 @@ BEGIN
     PORT MAP (
       RESET      => control_data_fifo_reset,
       CLK        => control_clk,
+      TRIG       => idata_trig_in,
       DIN        => tms_sdm_adc_dout,
       DIN_VALID  => tms_sdm_adc_dout_valid,
       DIN_CLK    => aurora_user_clk,
@@ -1183,6 +1185,7 @@ BEGIN
       DOUT_RDEN  => control_data_fifo_rdreq
     );
   control_data_fifo_reset <= reset OR idata_data_fifo_reset;
+
   -- -- debug
   -- aurora_ufc_tx_req <= pulse_reg(8);
   -- ufc_tx_tvalid_edge_sync_inst : edge_sync
@@ -1220,7 +1223,7 @@ BEGIN
       END IF;
     END IF;
   END PROCESS;
-  dbg_ila1_probe1 <= aurora_rx_tdata(63 DOWNTO 63-14) & aurora_rx_tvalid;
+  dbg_ila1_probe1 <= aurora_rx_tdata(63 DOWNTO 63-13) & aurora_rx_tvalid & control_data_fifo_reset;
 
   ---------------------------------------------> gtx / aurora
   ---------------------------------------------< gig_eth
@@ -1501,11 +1504,11 @@ BEGIN
       EI    => idata_trig_in,
       SO    => idata_trig_synced
     );
+  idata_trig_in       <= USER_SMA_GPIO_P;
   idata_trig_allow    <= config_reg(32*6+30);
   idata_data_wr_start <= pulse_reg(3) OR (idata_trig_synced AND idata_trig_allow
                                           AND (NOT idata_data_wr_busy)
                                           AND (NOT idata_data_wr_wrapped));
-  USER_SMA_GPIO_P <= idata_trig_synced;
 
   --led_obufs : FOR i IN 0 TO 7 GENERATE
   --  led_obuf : OBUF

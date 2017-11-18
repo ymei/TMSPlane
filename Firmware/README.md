@@ -70,7 +70,7 @@ Mode switch: M2 M1 M0
 1 0 1 JTAG
 
 In Vivado, use the Tcl command:
-write_cfgmem -format MCS -size 128 -interface BPIx16 -loadbit "up 0x0 top.runs/impl_1/top.bit" -file "../target/FMC112IPv4Sel.mcs"
+write_cfgmem -format MCS -size 128 -interface BPIx16 -loadbit "up 0x0 top.runs/impl_1/top.bit" -file "../target/TMS1mmX19KC705.mcs"
 Then in Hardware Manager, choose Micron density 1024Mb 28f00ap30t-bpi-x16
 Pull-none, RS Pins 25:24
 ```
