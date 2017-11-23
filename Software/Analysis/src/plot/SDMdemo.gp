@@ -30,13 +30,14 @@ set xrange [128:(128+512)]
 set format x "%h"
 set xlabel "Sample index, 40ns/sample"
 unset log y
-set yrange [-16:16]
+set yrange [-32:32]
 unset ytics
 set ytics
 set ytics nomirror
 set format y "%h"
 set ylabel "Merged\ndigital amplitude"
-set y2tics 0.1 right offset 3,0 tc lt 2
+set link y via y/40. inverse y*40.
+set y2tics 0.2 right offset 3,0 tc lt 2
 set format y2 "%.1f"
 set y2label 'Analog amplitude [V]' tc lt 2 offset -1,0
 
@@ -50,7 +51,7 @@ set xrange [3e4:12.5e6]
 set log x
 set format x "%.1s%c"
 set xlabel 'Frequency [Hz]'
-set yrange [1e-8:0.02]
+set yrange [1e-8:0.03]
 set log y
 set ytics mirror
 set format y "10^{%L}"
@@ -59,6 +60,7 @@ unset y2tics
 unset y2label
 
 set label 1 "Butterworth low-pass filter,\n10th order, f_{-3dB}=1MHz" at first 36e3,5e-4
+set label 2 "Bin size: 293.4Hz" at first 3.5e6,5.0e-8
 plot fname u 4:5 w step t 'SDM output', '' u 4:7 w step t 'Filtered'
 
 unset multiplot

@@ -11,6 +11,7 @@ import array,copy
 import ctypes
 import socket
 import argparse
+import json
 from command import *
 from sigproc import *
 import TMS1mmX19Config
@@ -84,7 +85,7 @@ class DataPanelGUI(object):
 
     ##
     # @param [in] dataFigSize (w, h) in inches for the data plots figure assuming dpi=72
-    def __init__(self, master, cd, dataFigSize=(13, 12.5)):
+    def __init__(self, master, cd, dataFigSize=(13, 12.5), visibleChannels=None):
         self.master = master
         self.cd = cd
         self.nAdcCh = self.cd.nAdcCh
@@ -101,13 +102,18 @@ class DataPanelGUI(object):
         self.dataPlotsFrame.bind("<Configure>", self.on_resize)
         self.dataPlotsFigure = Figure(figsize=dataFigSize, dpi=72)
         self.dataPlotsFigure.subplots_adjust(left=0.1, right=0.98, top=0.98, bottom=0.05, hspace=0, wspace=0)
+        if visibleChannels == None or len(visibleChannels) == 0:
+            visibleChannels = [i for i in xrange(self.nAdcCh-1)]
         # x-axis is shared
-        dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(self.nAdcCh, 1, self.nAdcCh, xlabel='t [us]', ylabel='[V]')
-        self.dataPlotsSubplots = [self.dataPlotsFigure.add_subplot(self.nAdcCh, 1, i+1, sharex=dataPlotsSubplotN)
-                                  for i in xrange(self.nAdcCh-1)]
-        for a in self.dataPlotsSubplots:
+        dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(
+            len(visibleChannels)+1, 1, len(visibleChannels)+1, xlabel='t [us]', ylabel='[V]')
+        self.dataPlotsSubplots = {}
+        for i in xrange(len(visibleChannels)):
+            self.dataPlotsSubplots[visibleChannels[i]] = self.dataPlotsFigure.add_subplot(
+                len(visibleChannels)+1, 1, i+1, sharex=dataPlotsSubplotN)
+        for i,a in self.dataPlotsSubplots.items():
             artist.setp(a.get_xticklabels(), visible=False)
-        self.dataPlotsSubplots.append(dataPlotsSubplotN)
+        self.dataPlotsSubplots[self.nAdcCh-1] = dataPlotsSubplotN
         self.dataPlotsCanvas = FigureCanvasTkAgg(self.dataPlotsFigure, master=self.dataPlotsFrame)
         self.dataPlotsCanvas.show()
         self.dataPlotsCanvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -150,19 +156,18 @@ class DataPanelGUI(object):
 
     def plot_data(self):
         # self.dataPlotsFigure.clf(keep_observers=True)
-        for a in self.dataPlotsSubplots:
+        for i,a in self.dataPlotsSubplots.items():
             a.cla()
-        for i in xrange(len(self.dataPlotsSubplots)-1):
-            a = self.dataPlotsSubplots[i]
+        for i,a in self.dataPlotsSubplots.items():
+            if i == self.nAdcCh-1:
+                a.set_xlabel(u't [us]')
+                a.set_ylabel('[V]')
+                continue
             artist.setp(a.get_xticklabels(), visible=False)
             a.set_ylabel("#{:d}".format(i), rotation=0)
-        a = self.dataPlotsSubplots[-1]
-        a.set_xlabel(u't [us]')
-        a.set_ylabel('[V]')
         nSamples = len(self.cd.adcData[0])
         x = [self.cd.adcDt * i for i in xrange(nSamples)]
-        for i in xrange(len(self.dataPlotsSubplots)):
-            a = self.dataPlotsSubplots[i]
+        for i,a in self.dataPlotsSubplots.items():
             a.locator_params(axis='y', tight=True, nbins=4)
             a.yaxis.set_major_formatter(FormatStrFormatter('%7.4f'))
             a.set_xlim([0.0, self.cd.adcDt * nSamples])
@@ -262,6 +267,12 @@ class ControlPanelGUI(object):
         self.voltsOutputLabels = [tk.Label(self.voltagesFrame, font="Courier 10", text="0.0 V")
                                   for i in xrange(self.nVolts)]
 
+        # update to latest display values
+        with self.cd.cv:
+            for i in xrange(self.nVolts):
+                self.cd.inputVcodes[i] = self.cd.sensorVcodes[self.cd.currentSensor][i]
+                self.cd.inputVs[i] = self.cd.tms1mmReg.dac_code2volt(self.cd.inputVcodes[i])
+        #
         self.voltsSetVars = [tk.DoubleVar() for i in xrange(self.nVolts)]
         for i in xrange(self.nVolts):
             self.voltsSetVars[i].set(self.cd.inputVs[i])
@@ -356,7 +367,7 @@ class SensorConfig(threading.Thread):
     # destroyed as well and accessing them would result in this thread
     # to hang.
 
-    def __init__(self, cd):
+    def __init__(self, cd, configFName):
         threading.Thread.__init__(self)
         self.cd = cd
         self.s = self.cd.ctrlSocket
@@ -370,6 +381,8 @@ class SensorConfig(threading.Thread):
                                       2 : [7, 1, 0, 4, 13],
                                       3 : [18, 6, 5, 14],
                                       4 : [17, 16, 15]}
+        self.configFName = configFName
+        self.read_config_file()
         #
         self.set_global_defaults()
 
@@ -379,6 +392,7 @@ class SensorConfig(threading.Thread):
                 self.cd.cv.wait(self.cd.tI)
                 if self.cd.vUpdated:
                     self.update_sensor(self.cd.currentSensor)
+                    self.write_config_file()
                     self.cd.vUpdated = False
                 self.get_inputs()
 
@@ -418,7 +432,7 @@ class SensorConfig(threading.Thread):
         self.s.sendall(self.dac8568.set_voltage(1, 1.024))
         self.s.sendall(self.dac8568.set_voltage(2, 1.65))
         time.sleep(0.001)
-        for c,l in self.tms1mmX19chainSensors.iteritems():
+        for c,l in self.tms1mmX19chainSensors.items():
             self.update_sensor(l[0])
         time.sleep(0.001)
 
@@ -488,13 +502,36 @@ class SensorConfig(threading.Thread):
     def get_inputs(self):
         return
 
+    def read_config_file(self, fName=None):
+        if fName:
+            self.configFName = fName
+        if os.path.isfile(self.configFName):
+            with open(self.configFName, 'r') as fp:
+                config = json.load(fp)
+                for i in xrange(len(config)):
+                    for j in xrange(len(self.cd.voltsNames)):
+                        self.cd.sensorVcodes[i][j] = config[repr(i)][self.cd.voltsNames[j]]
+        else:
+            return self.sensorVcodes
+
+    def write_config_file(self, fName=None):
+        if fName:
+            self.configFName = fName
+        config = {}
+        for i in xrange(self.cd.nCh):
+            config[i] = dict(zip(self.cd.voltsNames, self.cd.sensorVcodes[i]))
+        with open(self.configFName, 'w') as fp:
+            fp.write(json.dumps(config, sort_keys=True, indent=4))
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-d", "--data-ip-port", type=str, default="192.168.2.3:1024", help="data source ipaddr and port")
-    parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1025", help="control system ipaddr and port")
     parser.add_argument("-a", "--aout-buf", type=int, default="1", help="AOUT buffer select, 0:AOUT1, 1:AOUT2, >1:disable both")
+    parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1025", help="control system ipaddr and port")
+    parser.add_argument("-d", "--data-ip-port", type=str, default="192.168.2.3:1024", help="data source ipaddr and port")
+    parser.add_argument("-f", "--config-file", type=str, default="config.json", help="configuration file, will be overwritten")
     parser.add_argument("-g", "--bufferx2-gain", type=int, default="2", help="BufferX2 gain")
+    parser.add_argument("-l", "--visible-channels", type=str, default="None", help="List of ADC channels to plot (made visible).  None or [] means all channels")
     parser.add_argument("-s", "--sdm-mode", type=int, default="0", help="SDM working mode, 0:disabled, 1:normal operation, 2:test with signal injection")
     parser.add_argument("-t", "--buffer-test", type=int, default="0", help="Buffer test")
     #
@@ -514,16 +551,16 @@ if __name__ == "__main__":
     cd.x2gain = args.bufferx2_gain
     cd.sdmMode = args.sdm_mode
     cd.bufferTest = args.buffer_test
-    sensorConfig = SensorConfig(cd)
-
+    #
+    sensorConfig = SensorConfig(cd, configFName=args.config_file)
+    sensorConfig.start()
+    #
     root = tk.Tk()
     root.wm_title("Topmetal-S 1mm version x19 array Tuner")
     controlPanel = ControlPanelGUI(root, cd)
-
+    #
     dataPanelMaster = tk.Toplevel(root)
-    dataPanel = DataPanelGUI(dataPanelMaster, cd)
-
-    sensorConfig.start()
+    dataPanel = DataPanelGUI(dataPanelMaster, cd, visibleChannels=eval(args.visible_channels))
     root.mainloop()
     # If you put root.destroy() here, it will cause an error if
     # the window is closed with the window manager.
