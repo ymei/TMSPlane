@@ -8,7 +8,9 @@
 #define SCOPE_DATA_TYPE int16_t
 #define SCOPE_DATA_HDF5_TYPE H5T_NATIVE_INT16
 
-struct waveform_attribute 
+#define ANALYSIS_WAVEFORM_BASE_TYPE float
+
+struct waveform_attribute
 {
     unsigned int chMask;
     size_t nPt;     /* number of points in each event */

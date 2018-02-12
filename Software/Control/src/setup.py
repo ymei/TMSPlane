@@ -6,6 +6,7 @@ module0 = Extension('command',
                     include_dirs = ['/usr/local/include'],
                     libraries = ['m'],
                     library_dirs = ['/usr/local/lib'],
+                    extra_compile_args = ['-Wall', '-std=c99', '-pedantic'],
                     sources = ['command.c'])
 
 module1 = Extension('sigproc',
@@ -14,6 +15,7 @@ module1 = Extension('sigproc',
                     include_dirs = ['/usr/local/include'],
                     libraries = ['m'],
                     library_dirs = ['/usr/local/lib'],
+                    extra_compile_args = ['-Wall', '-std=c99', '-pedantic'],
                     sources = ['sigproc.c'])
 
 setup(name = 'PackageName',

@@ -6,6 +6,7 @@
 #
 
 from __future__ import print_function
+from __future__ import division
 import math,sys,time,os,shutil
 import socket
 import argparse
@@ -14,7 +15,7 @@ from command import *
 
 def demux_fifodata(fData, adcVoffset=1.024, adcLSB=62.5e-6):
     wWidth = 512
-    bytesPerSample = wWidth / 8
+    bytesPerSample = wWidth // 8
     nADCs = 20
     if type(fData[0]) == str:
         fD = bytearray(fData)
@@ -22,11 +23,11 @@ def demux_fifodata(fData, adcVoffset=1.024, adcLSB=62.5e-6):
         fD = fData
     if len(fD) % bytesPerSample != 0:
         return []
-    nSamples = len(fD) / bytesPerSample
+    nSamples = len(fD) // bytesPerSample
     ary = []
-    for i in xrange(nSamples):
+    for i in range(nSamples):
         adcVs = []
-        for j in xrange(nADCs):
+        for j in range(nADCs):
             idx0 = bytesPerSample - 1 - j*2
             v = ( fD[i * bytesPerSample + idx0 - 1] << 8
                 | fD[i * bytesPerSample + idx0])
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     time.sleep(0.5)
 
     # FPGA internal fifo : 512 bit width x 16384 depth
-    nWords = (512 / 32) * 16384
+    nWords = (512 // 32) * 16384
     nBytes = nWords * 4
     buf = bytearray(nBytes)
     print("nBytes = {:d}".format(nBytes))

@@ -6,6 +6,7 @@
 #
 
 from __future__ import print_function
+from __future__ import division
 import math,sys,time,os,shutil
 import socket
 from command import *

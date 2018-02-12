@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import division
 from ctypes import *
 import socket
 
@@ -76,7 +77,7 @@ class Cmd(object):
         if buf:
             mv = memoryview(buf)
         ret = ""
-        for iBatch in xrange(nRounds):
+        for iBatch in range(nRounds):
             cmdStr = self.read_datafifo(nWordsBatchMax-1)
             s.sendall(cmdStr)
             toRead = nWordsBatchMax * 4

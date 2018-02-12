@@ -6,6 +6,7 @@
 #
 
 from __future__ import print_function
+from __future__ import division
 import math,sys,time,os,shutil
 import copy
 import socket
@@ -65,11 +66,11 @@ class TMS1mmReg(object):
                 self._regMap['vcasn']  << 118 |
                 self._regMap['vcasp']  << 114 |
                 self._regMap['vref']   << 110 )
-        for i in xrange(len(self._regMap['K'])):
+        for i in range(len(self._regMap['K'])):
             ret |= self._regMap['K'][i] << (len(self._regMap['K']) - i) + 99
-        for i in xrange(len(self._regMap['PD'])):
+        for i in range(len(self._regMap['PD'])):
             ret |= self._regMap['PD'][i] << (len(self._regMap['PD']) - i) + 95
-        for i in xrange(len(self._regMap['DAC'])):
+        for i in range(len(self._regMap['DAC'])):
             ret |= self._regMap['DAC'][i] << (len(self._regMap['DAC'])-1 - i)*16
         return ret
 
@@ -162,7 +163,7 @@ class LTC2990(object):
 
     def read_all_registers(self, s):
         ret = []
-        for regAddr in xrange(16):
+        for regAddr in range(16):
             self.i2c_write_data(s, self.slaveAddr, regAddr, [])
             val = self.i2c_read_data(s, self.slaveAddr)[0]
             ret.append([regAddr, val])
@@ -216,7 +217,7 @@ def tms_sio_rw(s, cmd, colAddr, dout, clkDiv=7, dcfgBase=5, dstatBase=1, pulseRe
     s.sendall(cmdStr)
     # drive dout
     cmdStr = ""
-    for i in xrange(8):
+    for i in range(8):
         cmdStr += cmd.write_register(dcfgBase+i, (dout >> i*16) & 0xffff)
     i = 8
     cmdStr += cmd.write_register(dcfgBase+i, (dout >> i*16) & 0xffff | colAddrClkDivVal)
@@ -226,12 +227,12 @@ def tms_sio_rw(s, cmd, colAddr, dout, clkDiv=7, dcfgBase=5, dstatBase=1, pulseRe
     # readback
     time.sleep(0.1)
     cmdStr = ""
-    for i in xrange(9):
+    for i in range(9):
         cmdStr += cmd.read_status(8-i + dstatBase)
     s.sendall(cmdStr)
     retw = s.recv(4*9, socket.MSG_WAITALL)
     ret = 0
-    for i in xrange(9):
+    for i in range(9):
         ret = ret | ( int(ord(retw[i*4+2])) << ((8-i) * 16 + 8) |
                       int(ord(retw[i*4+3])) << ((8-i) * 16))
     ret = ret & 0x3ffffffffffffffffffffffffffffffff
@@ -328,8 +329,8 @@ if __name__ == "__main__":
     time.sleep(0.001)
 # tms serial io
     tmsChainLengths = [3, 4, 5, 4, 3]
-    for i in xrange(len(tmsChainLengths)):
-        for j in xrange(tmsChainLengths[i]+1):
+    for i in range(len(tmsChainLengths)):
+        for j in range(tmsChainLengths[i]+1):
             tms_sio_rw(s, cmd, i, tmsRegCode)
 # tms reset and load register
     cmdStr = cmd.send_pulse(1<<0)

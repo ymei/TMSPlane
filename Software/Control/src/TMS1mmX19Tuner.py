@@ -6,7 +6,9 @@
 #
 
 from __future__ import print_function
+from __future__ import division
 import math,sys,time,os,shutil
+from datetime import datetime
 import array,copy
 import ctypes
 import socket
@@ -15,6 +17,7 @@ import json
 from command import *
 from sigproc import *
 import TMS1mmX19Config
+from PyDE import *
 
 if sys.version_info[0] < 3:
     import Tkinter as tk
@@ -44,7 +47,7 @@ class CommonData(object):
         self.nAdcCh = 20
         self.adcSdmCycRatio = 5
         self.nSamples = nSamples
-        self.nWords = 512/32 * self.nSamples
+        self.nWords = 512//32 * self.nSamples
         # signal processor
         if (not sigproc):
             self.sigproc = SigProc(self.nSamples, self.nAdcCh, self.nCh, self.adcSdmCycRatio)
@@ -65,6 +68,16 @@ class CommonData(object):
         self.aoutBuf = 0 # 0 : AOUT1, 1 : AOUT2, >1 : disable both
         #
         self.voltsNames = ['VBIASN', 'VBIASP', 'VCASN', 'VCASP', 'VDIS', 'VREF']
+        # auto tune
+        self.atCalled = 0
+        #self.atBounds = [(1.3, 1.4), (1.5, 1.6), (1.45, 1.6), (1.1, 1.35), (1.1, 1.6), (2.4, 2.5)]
+        self.atBounds = [(1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8)]
+        self.atTbounds = (3000, 3500) # time of pulse bounds
+        self.atMeasNavg = 10 # number of measurements for average
+        self.atMaxIters = 50
+        self.atBestRet   = 0.0
+        self.atBestVolts = [0.0 for i in range(len(self.voltsNames))]
+        #
         self.cv = threading.Condition() # condition variable
         ########################################< cv protected <
         self.quit = False
@@ -73,11 +86,11 @@ class CommonData(object):
         self.inputVs = [1.379, 1.546, 1.626, 1.169, 1.357, 2.458]
         self.inputVcodes = [tms1mmReg.dac_volt2code(v) for v in self.inputVs]
         # measured and returned values, not used but displayed
-        self.voltsOutput = [0.0 for i in xrange(self.nVolts)]
-        self.inputIs = [0.0 for i in xrange(self.nVolts)]
+        self.voltsOutput = [0.0 for i in range(self.nVolts)]
+        self.inputIs = [0.0 for i in range(self.nVolts)]
         #
         self.currentSensor = 0
-        self.sensorVcodes = [[v for v in self.inputVcodes] for i in xrange(self.nCh)]
+        self.sensorVcodes = [[v for v in self.inputVcodes] for i in range(self.nCh)]
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
 
@@ -103,12 +116,12 @@ class DataPanelGUI(object):
         self.dataPlotsFigure = Figure(figsize=dataFigSize, dpi=72)
         self.dataPlotsFigure.subplots_adjust(left=0.1, right=0.98, top=0.98, bottom=0.05, hspace=0, wspace=0)
         if visibleChannels == None or len(visibleChannels) == 0:
-            visibleChannels = [i for i in xrange(self.nAdcCh-1)]
+            visibleChannels = [i for i in range(self.nAdcCh-1)]
         # x-axis is shared
         dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(
             len(visibleChannels)+1, 1, len(visibleChannels)+1, xlabel='t [us]', ylabel='[V]')
         self.dataPlotsSubplots = {}
-        for i in xrange(len(visibleChannels)):
+        for i in range(len(visibleChannels)):
             self.dataPlotsSubplots[visibleChannels[i]] = self.dataPlotsFigure.add_subplot(
                 len(visibleChannels)+1, 1, i+1, sharex=dataPlotsSubplotN)
         for i,a in self.dataPlotsSubplots.items():
@@ -122,8 +135,12 @@ class DataPanelGUI(object):
         self.dataPlotsCanvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsCanvas.mpl_connect('key_press_event', self.on_key_event)
         #
-        button = tk.Button(master=self.master, text='Re-sample', command=self.get_and_plot_data)
-        button.pack(side=tk.BOTTOM, fill=tk.X)
+        self.buttonFrame = tk.Frame(self.master)
+        self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
+        self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
+        self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
         #
         self.plot_data()
 
@@ -152,6 +169,7 @@ class DataPanelGUI(object):
         # self.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
         self.plot_data()
         # self.save_data(self.cd.dataFName)
+        self.cd.sigproc.measure_pulse(self.cd.adcData)
         self.cd.sigproc.save_data(self.cd.dataFName, self.cd.adcData, self.cd.sdmData)
 
     def plot_data(self):
@@ -166,7 +184,7 @@ class DataPanelGUI(object):
             artist.setp(a.get_xticklabels(), visible=False)
             a.set_ylabel("#{:d}".format(i), rotation=0)
         nSamples = len(self.cd.adcData[0])
-        x = [self.cd.adcDt * i for i in xrange(nSamples)]
+        x = [self.cd.adcDt * i for i in range(nSamples)]
         for i,a in self.dataPlotsSubplots.items():
             a.locator_params(axis='y', tight=True, nbins=4)
             a.yaxis.set_major_formatter(FormatStrFormatter('%7.4f'))
@@ -178,20 +196,20 @@ class DataPanelGUI(object):
 
     def demux_fifodata(self, fData, adcData=None, sdmData=None, adcVoffset=1.024, adcLSB=62.5e-6):
         wWidth = 512
-        bytesPerSample = wWidth / 8
+        bytesPerSample = wWidth // 8
         if type(fData[0]) == str:
             fD = bytearray(fData)
         else:
             fD = fData
         if len(fD) % bytesPerSample != 0:
             return []
-        nSamples = len(fD) / bytesPerSample
+        nSamples = len(fD) // bytesPerSample
         if adcData == None:
             adcData = ((ctypes.c_float * nSamples) * self.nAdcCh)()
         if sdmData == None:
             sdmData = ((ctypes.c_byte * (nSamples*self.adcSdmCycRatio)) * (self.nSdmCh*2))()
-        for i in xrange(nSamples):
-            for j in xrange(self.nAdcCh):
+        for i in range(nSamples):
+            for j in range(self.nAdcCh):
                 idx0 = bytesPerSample - 1 - j*2
                 v = ( fD[i * bytesPerSample + idx0 - 1] << 8
                     | fD[i * bytesPerSample + idx0])
@@ -200,7 +218,7 @@ class DataPanelGUI(object):
                 # convert to actual volts
                 adcData[j][i] = v * adcLSB + adcVoffset
             b0 = self.nAdcCh*2
-            for j in xrange(self.adcSdmCycRatio*self.nSdmCh*2):
+            for j in range(self.adcSdmCycRatio*self.nSdmCh*2):
                 bi = bytesPerSample - 1 - b0 - int(j / 8)
                 bs = j % 8
                 ss = int(j / (self.nSdmCh*2))
@@ -214,15 +232,15 @@ class DataPanelGUI(object):
         with open(fNames[0], 'w') as fp:
             fp.write("# TimeStamp: 0x{:016x} 5Msps ADC\n".format(timeStamp))
             nSamples = len(self.cd.adcData[0])
-            for i in xrange(nSamples):
-                for j in xrange(len(self.cd.adcData)):
+            for i in range(nSamples):
+                for j in range(len(self.cd.adcData)):
                     fp.write(" {:9.6f}".format(self.cd.adcData[j][i]))
                 fp.write("\n")
         with open(fNames[1], 'w') as fp:
             fp.write("# TimeStamp: 0x{:016x} 25Msps SDM\n".format(timeStamp))
             nSamples = len(self.cd.sdmData[0])
-            for i in xrange(nSamples):
-                for j in xrange(len(self.cd.sdmData)):
+            for i in range(nSamples):
+                for j in range(len(self.cd.sdmData)):
                     fp.write(" {:1d}".format(self.cd.sdmData[j][i]))
                 fp.write("\n")
 
@@ -249,50 +267,50 @@ class ControlPanelGUI(object):
         self.sensorSelRadioButtons = [tk.Radiobutton(self.sensorsFrame, text="{:d}".format(i),
                                                      variable=self.sensorSelVar, value=i,
                                                      command=self.select_current_sensor)
-                                      for i in xrange(self.nCh)]
-        for i in xrange(len(self.sensorSelRadioButtons)):
+                                      for i in range(self.nCh)]
+        for i in range(len(self.sensorSelRadioButtons)):
             b = self.sensorSelRadioButtons[i]
             b.grid(row=self.sensorLocOnGrid[i][0], column=self.sensorLocOnGrid[i][1])
 
         # frame for controls
         self.voltagesFrame = tk.Frame(master)
-        self.voltagesFrame.pack(side=tk.BOTTOM)
+        self.voltagesFrame.pack(side=tk.TOP)
 
         # GUI widgets
         self.voltsNameLabels =  [tk.Label(self.voltagesFrame, text=self.cd.voltsNames[i])
-                             for i in xrange(self.nVolts)]
+                             for i in range(self.nVolts)]
         self.voltsILabels = [tk.Label(self.voltagesFrame, font="Courier 10", text="0.0 A")
-                             for i in xrange(self.nVolts)]
+                             for i in range(self.nVolts)]
 
         self.voltsOutputLabels = [tk.Label(self.voltagesFrame, font="Courier 10", text="0.0 V")
-                                  for i in xrange(self.nVolts)]
+                                  for i in range(self.nVolts)]
 
         # update to latest display values
         with self.cd.cv:
-            for i in xrange(self.nVolts):
+            for i in range(self.nVolts):
                 self.cd.inputVcodes[i] = self.cd.sensorVcodes[self.cd.currentSensor][i]
                 self.cd.inputVs[i] = self.cd.tms1mmReg.dac_code2volt(self.cd.inputVcodes[i])
         #
-        self.voltsSetVars = [tk.DoubleVar() for i in xrange(self.nVolts)]
-        for i in xrange(self.nVolts):
+        self.voltsSetVars = [tk.DoubleVar() for i in range(self.nVolts)]
+        for i in range(self.nVolts):
             self.voltsSetVars[i].set(self.cd.inputVs[i])
         self.voltsSetEntries = [tk.Spinbox(self.voltagesFrame, width=8, justify=tk.RIGHT,
                                            textvariable=self.voltsSetVars[i],
                                            from_=0.0, to=3.3, increment=0.001,
                                            format_="%6.4f",
                                            command=self.set_voltage_update)
-                                for i in xrange(self.nVolts)]
+                                for i in range(self.nVolts)]
         for v in self.voltsSetEntries:
             v.bind('<Return>', self.set_voltage_update)
 
-        self.voltsSetCodeVars = [tk.IntVar() for i in xrange(self.nVolts)]
-        for i in xrange(self.nVolts):
+        self.voltsSetCodeVars = [tk.IntVar() for i in range(self.nVolts)]
+        for i in range(self.nVolts):
             self.voltsSetCodeVars[i].set(self.cd.inputVcodes[i])
         self.voltsSetCodeEntries = [tk.Spinbox(self.voltagesFrame, width=8, justify=tk.RIGHT,
                                                textvariable=self.voltsSetCodeVars[i],
                                                from_=0, to=65535, increment=1,
                                                command=self.set_voltage_dac_code_update)
-                                    for i in xrange(self.nVolts)]
+                                    for i in range(self.nVolts)]
         for v in self.voltsSetCodeEntries:
             v.bind('<Return>', self.set_voltage_dac_code_update)
 
@@ -307,11 +325,17 @@ class ControlPanelGUI(object):
                  fg="white", bg="black").grid(row=0, column=3, sticky=tk.W+tk.E)
 
         # placing widgets
-        for i in xrange(self.nVolts):
+        for i in range(self.nVolts):
             self.voltsNameLabels[i].grid(row=i+1,column=0)
             self.voltsSetEntries[i].grid(row=i+1, column=1)
             self.voltsSetCodeEntries[i].grid(row=i+1, column=2)
             self.voltsOutputLabels[i].grid(row=i+1, column=3)
+
+        # buttons
+        self.buttonFrame = tk.Frame(self.master)
+        self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.autoTuneButton = tk.Button(master=self.buttonFrame, text='AutoTune', command=self.auto_tune)
+        self.autoTuneButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # self-updating functions
         self.update_values_display()
@@ -323,7 +347,7 @@ class ControlPanelGUI(object):
         self.master.destroy()
 
     def update_values_display(self):
-        for i in xrange(self.nVolts):
+        for i in range(self.nVolts):
             self.voltsILabels[i].configure(text="{:7.3f}".format(self.cd.inputIs[i]))
             self.voltsOutputLabels[i].configure(text="{:7.3f}".format(self.cd.voltsOutput[i]))
         self.master.after(int(1000*self.cd.tI), self.update_values_display)
@@ -332,26 +356,26 @@ class ControlPanelGUI(object):
         with self.cd.cv:
             self.cd.currentSensor = self.sensorSelVar.get()
             # load Vcodes for the specific sensor
-            for i in xrange(self.nVolts):
+            for i in range(self.nVolts):
                 self.voltsSetCodeVars[i].set(self.cd.sensorVcodes[self.cd.currentSensor][i])
         self.set_voltage_dac_code_update()
 
     def set_voltage_update(self, *args):
         with self.cd.cv:
-            for i in xrange(self.nVolts):
+            for i in range(self.nVolts):
                 self.cd.inputVs[i] = self.voltsSetVars[i].get()
                 self.cd.inputVcodes[i] = self.cd.tms1mmReg.dac_volt2code(self.cd.inputVs[i])
                 self.voltsSetCodeVars[i].set(self.cd.inputVcodes[i])
                 # update info for the array
                 self.cd.sensorVcodes[self.cd.currentSensor][i] = self.cd.inputVcodes[i]
             self.cd.vUpdated = True
-            print(self.cd.inputVs)
-            print(self.cd.inputVcodes)
+            print("Set volts: ", self.cd.inputVs)
+            print("Set volt codes: ", self.cd.inputVcodes)
         return True
 
     def set_voltage_dac_code_update(self, *args):
         with self.cd.cv:
-            for i in xrange(self.nVolts):
+            for i in range(self.nVolts):
                 self.cd.inputVcodes[i] = self.voltsSetCodeVars[i].get()
                 self.cd.inputVs[i] = self.cd.tms1mmReg.dac_code2volt(self.cd.inputVcodes[i])
                 self.voltsSetVars[i].set(round(self.cd.inputVs[i],4))
@@ -360,6 +384,51 @@ class ControlPanelGUI(object):
             self.cd.vUpdated = True
             print(self.cd.inputVcodes)
         return True
+
+    def auto_tune(self, *args):
+        startTime = datetime.now()
+        self.cd.atCalled = 0
+        de = DE(self.auto_tune_fun, self.cd.atBounds, maxiters=self.cd.atMaxIters)
+        ret = de.solve()
+        print(ret)
+        print("AutoTune: best ret: {:}".format(self.cd.atBestRet), self.cd.atBestVolts)
+        for i in range(min(self.nVolts, len(self.cd.atBestVolts))):
+            self.voltsSetVars[i].set(self.cd.atBestVolts[i])
+        self.set_voltage_update()
+        stopTime = datetime.now()
+        runTime = stopTime - startTime
+        print("AutoTune: run time: {:}, fun called: {:d}".format(str(runTime), self.cd.atCalled))
+        self.auto_tune_fun(self.cd.atBestVolts)
+        return ret
+
+    def auto_tune_fun(self, x):
+        print("AutoTune: called: {:d}".format(self.cd.atCalled))
+        self.cd.atCalled += 1
+        for i in range(min(self.nVolts, len(x))):
+            self.voltsSetVars[i].set(x[i])
+        self.set_voltage_update()
+        time.sleep(2.0)
+        meas = [[] for i in range(self.cd.sigproc.nParamMax)]
+        for i in range(self.cd.atMeasNavg):
+            # reset data fifo
+            self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+            time.sleep(0.05)
+            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+            self.cd.sigproc.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
+            currMeasP = self.cd.sigproc.measure_pulse(self.cd.adcData)[self.cd.currentSensor]
+            if currMeasP[2] < self.cd.atTbounds[0] or currMeasP[2] > self.cd.atTbounds[1] or currMeasP[3] < 0:
+                return 0
+            for j in range(len(currMeasP)):
+                meas[j].append(currMeasP[j])
+        currMeasP = [sum(x)/len(x) for x in meas]
+        print("AutoTune: meas after {:d} avgs : {:}".format(self.cd.atMeasNavg, currMeasP))
+        ret = -currMeasP[3]/currMeasP[1]
+        print("AutoTune: ret : ", ret, currMeasP[1], currMeasP[3])
+        if ret < self.cd.atBestRet:
+            self.cd.atBestRet = ret
+            for i in range(len(self.cd.atBestVolts)):
+                self.cd.atBestVolts[i] = self.cd.inputVs[i]
+        return ret
 
 class SensorConfig(threading.Thread):
     # Do not try to access tk.IntVar etc. here.  Since after
@@ -508,17 +577,17 @@ class SensorConfig(threading.Thread):
         if os.path.isfile(self.configFName):
             with open(self.configFName, 'r') as fp:
                 config = json.load(fp)
-                for i in xrange(len(config)):
-                    for j in xrange(len(self.cd.voltsNames)):
+                for i in range(len(config)):
+                    for j in range(len(self.cd.voltsNames)):
                         self.cd.sensorVcodes[i][j] = config[repr(i)][self.cd.voltsNames[j]]
         else:
-            return self.sensorVcodes
+            return self.cd.sensorVcodes
 
     def write_config_file(self, fName=None):
         if fName:
             self.configFName = fName
         config = {}
-        for i in xrange(self.cd.nCh):
+        for i in range(self.cd.nCh):
             config[i] = dict(zip(self.cd.voltsNames, self.cd.sensorVcodes[i]))
         with open(self.configFName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))

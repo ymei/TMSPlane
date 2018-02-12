@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017
+ * Copyright (c) 2017 -- 2018
  *
  *     Yuan Mei
  *
@@ -32,12 +32,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <float.h>
+#include <math.h>
 
 #include "common.h"
 #include "sigproc.h"
 
 int sigproc_demux_fifodata(const char *fData, size_t bytesPerSample, size_t nSamples, size_t adcSdmCycRatio,
-                           float *adcData, size_t nAdcCh, char *sdmData, size_t nSdmCh, double adcVoffset, double adcLSB)
+                           ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh, char *sdmData, size_t nSdmCh, double adcVoffset, double adcLSB)
 {
     int v;
     ssize_t i, j, idx0, b0, bi, bs, ch, ss;
@@ -64,7 +66,7 @@ int sigproc_demux_fifodata(const char *fData, size_t bytesPerSample, size_t nSam
 }
 
 int sigproc_save_data(size_t nSamples, time_t timeStamp, size_t adcSdmCycRatio,
-                      const char *adcFName, const float *adcData, size_t nAdcCh,
+                      const char *adcFName, const ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh,
                       const char *sdmFName, const char *sdmData, size_t nSdmCh)
 {
     FILE *fpa, *fps;
@@ -95,5 +97,85 @@ int sigproc_save_data(size_t nSamples, time_t timeStamp, size_t adcSdmCycRatio,
 
     fclose(fpa);
     fclose(fps);
+    return 0;
+}
+
+int filters_trapezoidal(size_t wavLen, const ANALYSIS_WAVEFORM_BASE_TYPE *inWav, ANALYSIS_WAVEFORM_BASE_TYPE *outWav,
+                        size_t k, size_t l, double M)
+{
+    double s, pp;
+    ssize_t i, j, jk, jl, jkl;
+    double vj, vjk, vjl, vjkl, dkl;
+
+    s = 0.0; pp = 0.0;
+
+    for(i=0; i<wavLen; i++) {
+        j=i; jk = j-k; jl = j-l; jkl = j-k-l;
+        vj   = j>=0   ? inWav[j]   : inWav[0];
+        vjk  = jk>=0  ? inWav[jk]  : inWav[0];
+        vjl  = jl>=0  ? inWav[jl]  : inWav[0];
+        vjkl = jkl>=0 ? inWav[jkl] : inWav[0];
+
+        dkl = vj - vjk - vjl + vjkl;
+        pp = pp + dkl;
+        if(M>=0.0) {
+            s = s + pp + dkl * M;
+        }
+        else { /* infinite decay time, so the input is a step function */
+            s = s + dkl;
+        }
+        outWav[i] = s / (fabs(M) * (double)k);
+    }
+    return 0;
+}
+
+int sigproc_measure_pulse(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh,
+                          size_t nFltParam, const double *fltParam,
+                          size_t nMeasParam, double *measParam)
+{
+    size_t nBl;
+    ssize_t iCh, i, j;
+    const ANALYSIS_WAVEFORM_BASE_TYPE *adcChData;
+    ANALYSIS_WAVEFORM_BASE_TYPE *scrAry; /* scratch array space */
+    double *measChParam, v, bl, bln;
+
+    FILE *fpa;
+    if((fpa=fopen("flt.dat", "w"))==NULL) {
+        perror("flt.dat");
+        return -1;
+    }
+
+    nBl = (size_t)fltParam[0];
+    scrAry = (ANALYSIS_WAVEFORM_BASE_TYPE*)calloc(nSamples, sizeof(ANALYSIS_WAVEFORM_BASE_TYPE));
+    for(iCh=0; iCh<nAdcCh; iCh++) {
+        adcChData = adcData + nSamples * iCh;
+        measChParam = measParam + nMeasParam * iCh;
+        /* baseline and baseline noise */
+        bl = 0.0; bln = 0.0;
+        for(i=0; i<nBl; i++) {
+            bl += adcChData[i];
+            bln += adcChData[i] * adcChData[i];
+        }
+        bl /= (double)nBl;
+        bln = sqrt((bln - (double)nBl * bl*bl)/(nBl - 1.0));
+        measChParam[0] = bl;
+        measChParam[1] = bln;
+        /* peak location and height */
+        filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+        v = -DBL_MAX; j = 0;
+        for(i=0; i<nSamples; i++) {
+            if(scrAry[i] > v) {
+                v = scrAry[i];
+                j = i;
+            }
+            fprintf(fpa, "%g\n", scrAry[i] + bl);
+        }
+        measChParam[2] = j;
+        measChParam[3] = v;
+        fprintf(fpa, "\n\n");
+    }
+    free(scrAry);
+
+    fclose(fpa);
     return 0;
 }
