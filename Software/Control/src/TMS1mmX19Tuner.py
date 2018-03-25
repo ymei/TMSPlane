@@ -71,10 +71,11 @@ class CommonData(object):
         # auto tune
         self.atCalled = 0
         #self.atBounds = [(1.3, 1.4), (1.5, 1.6), (1.45, 1.6), (1.1, 1.35), (1.1, 1.6), (2.4, 2.5)]
-        self.atBounds = [(1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8)]
+        self.atBounds = [(0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (2.2, 2.8)]
+        #self.atBounds = [(1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8)]
         self.atTbounds = (3000, 3500) # time of pulse bounds
         self.atMeasNavg = 10 # number of measurements for average
-        self.atMaxIters = 50
+        self.atMaxIters = 100
         self.atBestRet   = 0.0
         self.atBestVolts = [0.0 for i in range(len(self.voltsNames))]
         #
